@@ -1,4 +1,3 @@
-import analysis
 import data
 import numpy as np
 import plotly.express as px
@@ -21,53 +20,6 @@ class BCEMetric:
     def __call__(self, y_hat: torch.Tensor, y: torch.Tensor, model=None) -> list[np.array]:
         self.values.append(self.fn(y,y_hat).cpu().detach().numpy())
     
-
-class TPRMetric:
-    """
-    True positive rate metric for tracking during training.
-    """
-    def __init__(self) -> None:
-        self.name='tpr'
-        self.values = []
-
-
-    def __call__(self, y_hat: torch.Tensor, y: torch.Tensor, model=None) -> list[np.array]:
-        p = y_hat[y>0.5]
-        self.values.append((p>0.5).cpu().detach().numpy().mean())
-
-
-class SizeOrthogonalityMetric:
-    def __init__(self):
-        self.name='ortho'
-        self.values = {'x':[],'y':[],'color':[]}
-        self.small_animal_idxs = data.get_item_indices_by_category_and_size(['mammal','bird','fish','reptile'],'small')
-        self.large_animal_idxs = data.get_item_indices_by_category_and_size(['mammal','bird','fish','reptile'],'large')
-        self.small_instrument_idxs = data.get_item_indices_by_category_and_size(['instrument'],'small')
-        self.large_instrument_idxs = data.get_item_indices_by_category_and_size(['instrument'],'large')
-
-    def __call__(self,y_hat,y,model):
-        learned_context_dependent_reps = model.get_context_dependent_reps()[1]
-        small_animal_reps = learned_context_dependent_reps[self.small_animal_idxs]
-        large_animal_reps = learned_context_dependent_reps[self.large_animal_idxs]
-        small_instrument_reps = learned_context_dependent_reps[self.small_instrument_idxs]
-        large_instrument_reps = learned_context_dependent_reps[self.large_instrument_idxs]
-        animal_within = []
-        for i in range(len(small_animal_reps)):
-            for j in range(len(large_animal_reps)):
-                animal_within.append(large_animal_reps[j]-small_animal_reps[i])
-        instrument_within = []
-        for i in range(len(small_instrument_reps)):
-            for j in range(len(large_instrument_reps)):
-                instrument_within.append(large_instrument_reps[j]-small_instrument_reps[i])
-        within_angles, across_angles = analysis.cosine_splithalf(small_animal_reps, large_animal_reps,
-                                                                    small_instrument_reps, large_instrument_reps,1000)
-        self.values['y'].append(within_angles.mean())
-        self.values['y'].append(across_angles.mean())
-        self.values['y'].append(across_angles.mean()-within_angles.mean())
-        self.values['y'].append(((within_angles-across_angles)>0).mean())
-        self.values['x'].extend([len(self.values['x'])//4]*4)
-        self.values['color'].extend(['within','across','delta','pval'])
-
 
 class ISCModel(nn.Module):
     """
@@ -163,7 +115,7 @@ class ISCModel(nn.Module):
 
         self.loss_fn = nn.BCEWithLogitsLoss()
         self.optimizer = optim.Adam(self.parameters(),lr=lr)
-        self.metrics = [BCEMetric(), TPRMetric()]
+        self.metrics = [BCEMetric()]
         self.num_objects = num_objects
         self.num_tasks = num_tasks
         self.num_context_dependent_hidden_units = num_context_dependent_hidden_units

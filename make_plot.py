@@ -7,6 +7,8 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import plotly.express as px
 
+pd.options.mode.copy_on_write = True # prevent SettingWithCopy warnings
+
 def _rotate_row_titles(fig, row_labels):
     """Rotate row titles vertically on the left edge regardless of subplot count."""
     for ann in fig.layout.annotations:
@@ -14,7 +16,13 @@ def _rotate_row_titles(fig, row_labels):
             ann.update(x=-0.07, textangle=-90, xanchor='center')
 
 def make_model_plot(models, include_human=True):
-    """Generates plot for model on the experiment."""
+    """
+    Generates plot for a list of models on the ISC distractor experiment.
+    
+    Parameters:
+    - models (list[tuple]): a list of (name, path) for each model
+    - include_humans (bool): if True, displays results for humans
+    """
 
     num_models = len(models) # counts number of models used
 
@@ -53,6 +61,7 @@ def make_model_plot(models, include_human=True):
     _rotate_row_titles(fig, {"Categorically Blocked Condition", "Interleaved Condition"})
     fig.show()
 
+    # figure for error rate
     fig = make_subplots(rows=2,cols=num_models,row_titles=['Categorically Blocked Condition','Interleaved Condition'],
                         column_titles=[name + ' Performance' for name,_,_,_,_ in model_plot_data])
     for i in range(len(model_plot_data)):
@@ -79,6 +88,8 @@ def make_model_plot(models, include_human=True):
 
 def generate_model_plot_data(model_path):
     """Generate experiment plot data for a given model."""
+
+    # load model experiment data
     model_data = pd.read_csv(model_path)
 
     model_data = model_data[model_data.block_type!='random']
@@ -87,6 +98,8 @@ def generate_model_plot_data(model_path):
 
     model_data_interleaved = model_data_interleaved.groupby(['model','cat_condition','size_condition'],as_index=False).mean(numeric_only=True)
     model_data_blocked = model_data_blocked.groupby(['model','cat_condition','size_condition'],as_index=False).mean(numeric_only=True)
+    
+    # generate plot data for reaction times
     plot_data_interleaved_model = data.add_within_subject_error_bars(model_data_interleaved,subject='model',dv='rt',remove_mean=True)
     plot_data_interleaved_model = plot_data_interleaved_model.groupby(['cat_condition','size_condition'],as_index=False).mean(numeric_only=True)
     plot_data_interleaved_model['cat_condition'] = plot_data_interleaved_model.cat_condition.replace({'c_ma':'Category Match','c_ms':'Category Mismatch'})
@@ -95,6 +108,8 @@ def generate_model_plot_data(model_path):
     plot_data_blocked_model = plot_data_blocked_model.groupby(['cat_condition','size_condition'],as_index=False).mean(numeric_only=True)
     plot_data_blocked_model['cat_condition'] = plot_data_blocked_model.cat_condition.replace({'c_ma':'Category Match','c_ms':'Category Mismatch'})
     plot_data_blocked_model['size_condition'] = plot_data_blocked_model.size_condition.replace({'s_ma':'Size Match','s_ms':'Size Mismatch'})
+    
+    # generate plot data for accuracy
     plot_data_interleaved_acc_model = data.add_within_subject_error_bars(model_data_interleaved,subject='model',dv='error',remove_mean=True)
     plot_data_interleaved_acc_model = plot_data_interleaved_acc_model.groupby(['cat_condition','size_condition'],as_index=False).mean(numeric_only=True)
     plot_data_interleaved_acc_model['cat_condition'] = plot_data_interleaved_acc_model.cat_condition.replace({'c_ma':'Category Match','c_ms':'Category Mismatch'})
@@ -116,6 +131,9 @@ def generate_model_plot_data(model_path):
     return model_rt_interleaved, model_rt_blocked, model_acc_interleaved, model_acc_blocked
 
 def generate_human_plot_data():
+    """Generate human behavioral experiment plot data."""
+
+    # load behavioral experiment data
     behavioral_data = data.load_behavioral_data()
     behavioral_data['rt'] = np.log(behavioral_data.rt.values)
 
@@ -129,6 +147,7 @@ def generate_human_plot_data():
     rt_data_interleaved = rt_data[rt_data.block_type_agg=='interleaved']
     rt_data_blocked = rt_data[rt_data.block_type_agg=='blocked']
 
+    # generate plot data for reaction times
     plot_data_interleaved = data.add_within_subject_error_bars(rt_data_interleaved)
     plot_data_interleaved = plot_data_interleaved.groupby(['cat_condition','size_condition'],as_index=False).mean(numeric_only=True)
     plot_data_interleaved['cat_condition'] = plot_data_interleaved.cat_condition.replace({'c_ma':'Category Match','c_ms':'Category Mismatch'})
@@ -138,6 +157,7 @@ def generate_human_plot_data():
     plot_data_blocked['cat_condition'] = plot_data_blocked.cat_condition.replace({'c_ma':'Category Match','c_ms':'Category Mismatch'})
     plot_data_blocked['size_condition'] = plot_data_blocked.size_condition.replace({'s_ma':'Size Match','s_ms':'Size Mismatch'})
 
+    # generate plot data for accuracy
     acc_data_interleaved['error'] = 1-acc_data_interleaved.correct
     plot_data_interleaved_acc = data.add_within_subject_error_bars(acc_data_interleaved,dv='error',remove_mean=True)
     plot_data_interleaved_acc = plot_data_interleaved_acc.groupby(['cat_condition','size_condition'],as_index=False).mean(numeric_only=True)
@@ -164,8 +184,9 @@ def generate_human_plot_data():
 
 if __name__=='__main__':
     make_model_plot(
-        [(
-            'Model', 'data/experiment3_simulation_data_0200.csv'
-        )],
+        [
+            ('ISC Model', 'data/isc_simulation_data_0200.csv'),
+            ('MLP Model', 'data/mlp_simulation_data_0200.csv'),
+        ],
         include_human=True
     )
