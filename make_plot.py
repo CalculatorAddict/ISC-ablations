@@ -183,10 +183,15 @@ def generate_human_plot_data():
 
 
 if __name__=='__main__':
-    make_model_plot(
-        [
+
+    models = [
             ('ISC Model', 'data/isc_simulation_data_0200.csv'),
-            ('MLP Model', 'data/mlp_simulation_data_0200.csv'),
-        ],
-        include_human=True
+            # ('MLP Model', 'data/mlp_simulation_data_0200.csv'),
+            # ('MLP (Batch size 1)', 'data/batch1_simulation_data_0200.csv'),
+            ('MLP (No context)', 'data/ablated_simulation_data_0200.csv')
+        ]
+
+    make_model_plot(
+        models,
+        include_human=False
     )

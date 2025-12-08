@@ -21,9 +21,9 @@ class BCEMetric:
         self.values.append(self.fn(y,y_hat).cpu().detach().numpy())
     
 
-class MLPModel(nn.Module):
+class AblatedModel(nn.Module):
     """
-    Creates a one-layer fully-connected Multi-layer Perceptron Model.
+    Creates a one-layer fully-connected Multi-layer Perceptron Model, ablating the context.
 
     Parameters
     ----------
@@ -82,7 +82,7 @@ class MLPModel(nn.Module):
         if device is None:
             device = utils.set_torch_device()
 
-        self.input_to_embedding_weights = nn.Linear(num_objects+num_tasks,num_context_dependent_hidden_units,device=device,bias=biases)
+        self.input_to_embedding_weights = nn.Linear(num_objects,num_context_dependent_hidden_units,device=device,bias=biases)
         if hidden_layers == 1:
             self.embedding_to_output_weights = nn.Linear(num_context_dependent_hidden_units,num_output,device=device,bias=biases)
         else:
@@ -115,16 +115,14 @@ class MLPModel(nn.Module):
 
 
     def forward(self, x: torch.Tensor, take_sigmoid: bool=True, noise: float=0) -> torch.Tensor:
-        concatenated_inputs = torch.cat(x[0],x[1])
-        
         if noise:
-            embedding = self.input_to_embedding_weights(concatenated_inputs)
+            embedding = self.input_to_embedding_weights(x[0])
             output = self.embedding_to_output_weights(torch.sigmoid(embedding))
             if take_sigmoid:
                 output = torch.sigmoid(output)+torch.randn_like(output)*noise
             return output
 
-        embedding = torch.sigmoid(self.input_to_embedding_weights(concatenated_inputs))
+        embedding = torch.sigmoid(self.input_to_embedding_weights(x[0]))
         output = self.embedding_to_output_weights(embedding)
         if take_sigmoid:
             output = torch.sigmoid(output)
