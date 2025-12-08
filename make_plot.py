@@ -15,7 +15,7 @@ def _rotate_row_titles(fig, row_labels):
         if ann.text in row_labels:
             ann.update(x=-0.07, textangle=-90, xanchor='center')
 
-def make_model_plot(models, include_human=True):
+def make_model_plot(models, include_human=False):
     """
     Generates plot for a list of models on the ISC distractor experiment.
     

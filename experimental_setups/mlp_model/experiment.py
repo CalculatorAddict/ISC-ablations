@@ -34,14 +34,14 @@ def calc_model_error(model,train_x,train_y,noise=0):
 
 error_data = []
 for model_idx in range(1):
-    simulation_model = model.AblatedModel(device='mps',num_tasks=5,num_context_dependent_hidden_units=128)
-    save_file = f'ablated-bhvsim.torch'
+    simulation_model = model.MLPModel(device='mps',num_tasks=5,num_context_dependent_hidden_units=128)
+    save_file = f'batch1-bhvsim.torch'
 
     # model training
     errors = calc_model_error(simulation_model,train_x,train_y)
     c=1
     while errors.mean() > 0.18:
-        simulation_model.train(train_x,train_y,epochs=1)
+        simulation_model.train(train_x,train_y,epochs=1,batch_size=1)
         errors = calc_model_error(simulation_model,train_x,train_y)
         c+=1
     print(model_idx, errors.mean(),c)
@@ -55,4 +55,4 @@ for i in range(71):
                                     'size_condition':size_conditions,'cat_condition':cat_conditions,
                                     'rand_condition':random_cat_conditions,'block_type':blocks}))
 error_data = pd.concat(error_data,axis=0)
-error_data.to_csv(f'data/ablated_simulation_data_0200.csv')
+error_data.to_csv(f'data/batch1_simulation_data_0200.csv')
