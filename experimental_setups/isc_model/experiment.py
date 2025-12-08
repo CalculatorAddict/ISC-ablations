@@ -49,7 +49,7 @@ for model_idx in range(1):
             errors = calc_model_error(simulation_model,train_x,train_y)
             c+=1
         print(model_idx, errors.mean(),c)
-        torch.save(simulation_model.state_dict(),os.path.join('isc_model/models',save_file))
+        torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
 
 for i in range(71):
     errors = calc_model_error(simulation_model,train_x,train_y,noise=1.2)

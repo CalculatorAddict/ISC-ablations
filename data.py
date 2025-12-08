@@ -5,6 +5,7 @@ import plotly.express as px
 from scipy.stats import t
 import torch
 from utils import set_torch_device
+import sys
 
 """ Data loading and processing functions for the Leuven dataset."""
 
@@ -330,8 +331,6 @@ def make_behavioral_experiment_training_data(distractor_strength=.975,target_str
     105,115,29,57,59,
     248,252,261,263,257,
     262,253,266,267,260]
-    random_stimuli = ['cello','elephant','goldfish','harp','iguana',
-    'mouse','piano','recorder','shark','triangle']
     random_contexts = [1,0,1,0,0,0,1,1,0,1,1,0,0,1,1,0,1,0,1,0]
 
     obj_data = pd.read_csv('data/leuven_size.csv')
@@ -380,6 +379,46 @@ def make_behavioral_experiment_training_data(distractor_strength=.975,target_str
     blocks = ['blocked']*380+['interleaved']*380+['random']*380
     return [item_in,context_in],out_,size_conditions,cat_conditions,random_cat_conditions,blocks
 
+
+def make_altered_experiment_training_data(distractor_strength=.975,target_strength=1):
+    experiment_stimulus_indices = [
+        118,104,30,48,116, # big animals
+        105,115,29,57,59, # small animals
+        248,252,261,263,257, # big instruments
+        262,253,266,267,260 # small instruments
+    ]
+    random_contexts = [1,0,1,0,0,0,1,1,0,1,1,0,0,1,1,0,1,0,1,0]
+
+    obj_data = pd.read_csv('data/leuven_size.csv')
+    names, sizes, categories = obj_data.name.values, obj_data.size_for_animal_instrument_dataset.values, obj_data.category.values
+    names, sizes, categories = names[experiment_stimulus_indices], sizes[experiment_stimulus_indices], categories[experiment_stimulus_indices]
+    item_in = torch.zeros((380,350),dtype=torch.float,device=set_torch_device())
+    context_in = torch.zeros((380,5),dtype=torch.float,device=set_torch_device())
+    out_ = torch.zeros((380,2541+2+3+350),dtype=torch.float,device=set_torch_device())
+
+    contexts = [0]*10+[1]*10
+    sizes = [2542]*5+[2541]*5+[2542]*5+[2541]*5
+    target_idxs, distractor_idxs, context_idxs, size_idxs = [], [], [], []
+    size_conditions, cat_conditions = [], []
+    random_cat_conditions = []
+    for i in range(20):
+        for j in range(20):
+            if i==j:
+                continue
+            target_idxs.append(experiment_stimulus_indices[i])
+            distractor_idxs.append(experiment_stimulus_indices[j])
+            context_idxs.append(contexts[i])
+            size_idxs.append(sizes[i])
+            size_conditions.append('s_ma' if sizes[i]==sizes[j] else 's_ms')
+            cat_conditions.append('c_ma' if contexts[i]==contexts[j] else 'c_ms')
+            random_cat_conditions.append('c_ma' if random_contexts[i]==random_contexts[j] else 'c_ms')
+    
+    item_in[list(range(380)),target_idxs] = target_strength
+    item_in[list(range(380)),distractor_idxs] = distractor_strength
+    context_in[list(range(380)),context_idxs] = 1
+    out_[list(range(380)),size_idxs] = 1
+
+    return [item_in,context_in],out_,size_conditions,cat_conditions,random_cat_conditions
 
 
 def add_within_subject_error_bars(data,dv='rt',within=['cat_condition','size_condition'],subject='participant',remove_mean=True):

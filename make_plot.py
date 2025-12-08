@@ -188,7 +188,8 @@ if __name__=='__main__':
             ('ISC Model', 'data/isc_simulation_data_0200.csv'),
             # ('MLP Model', 'data/mlp_simulation_data_0200.csv'),
             # ('MLP (Batch size 1)', 'data/batch1_simulation_data_0200.csv'),
-            ('MLP (No context)', 'data/ablated_simulation_data_0200.csv')
+            # ('MLP (No context)', 'data/ablated_simulation_data_0200.csv'),
+            ('ISC (Temporal)', 'data/isc_temporal_data_0200.csv')
         ]
 
     make_model_plot(
