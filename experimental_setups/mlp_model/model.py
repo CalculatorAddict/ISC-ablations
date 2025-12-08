@@ -115,7 +115,7 @@ class MLPModel(nn.Module):
 
 
     def forward(self, x: torch.Tensor, take_sigmoid: bool=True, noise: float=0) -> torch.Tensor:
-        concatenated_inputs = torch.cat(x[0],x[1])
+        concatenated_inputs = torch.cat((x[0],x[1]),dim=1)
         
         if noise:
             embedding = self.input_to_embedding_weights(concatenated_inputs)
