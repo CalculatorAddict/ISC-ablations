@@ -77,15 +77,18 @@ class MLPModel(nn.Module):
                  num_task_context_units: int = 16,
                  num_output: int = 2541+2+3+350,
                  num_tasks: int = 36, lr: float = .05,
-                 device=None, biases: bool = True) -> None:
+                 device=None, biases: bool = True, hidden_layers: int = 1) -> None:
         super().__init__()
         if device is None:
             device = utils.set_torch_device()
 
-        # concatenate object and task input
         self.input_to_embedding_weights = nn.Linear(num_objects+num_tasks,num_context_dependent_hidden_units,device=device,bias=biases)
-        self.embedding_to_output_weights = nn.Linear(num_context_dependent_hidden_units,num_output,device=device,bias=biases)
-        
+        if hidden_layers == 1:
+            self.embedding_to_output_weights = nn.Linear(num_context_dependent_hidden_units,num_output,device=device,bias=biases)
+        else:
+            self.embedding_to_output_weights = nn.Linear(num_context_dependent_hidden_units,num_output,device=device,bias=biases)
+            self.embedding_to_output_weights = nn.Linear(num_context_dependent_hidden_units,num_output,device=device,bias=biases)
+
         nn.init.uniform_(self.input_to_embedding_weights.weight,a=-.01,b=.01)
         nn.init.uniform_(self.embedding_to_output_weights.weight,a=-.01,b=.01)
 
@@ -112,15 +115,15 @@ class MLPModel(nn.Module):
 
 
     def forward(self, x: torch.Tensor, take_sigmoid: bool=True, noise: float=0) -> torch.Tensor:
+        concatenated_inputs = torch.cat(x[0],x[1])
+        
         if noise:
-            concatenated_inputs = torch.cat([x[0], x[1]], axis=1)
             embedding = self.input_to_embedding_weights(concatenated_inputs)
             output = self.embedding_to_output_weights(torch.sigmoid(embedding))
             if take_sigmoid:
                 output = torch.sigmoid(output)+torch.randn_like(output)*noise
             return output
 
-        concatenated_inputs = torch.cat([x[0],x[1]], axis=1)
         embedding = torch.sigmoid(self.input_to_embedding_weights(concatenated_inputs))
         output = self.embedding_to_output_weights(embedding)
         if take_sigmoid:
@@ -158,77 +161,3 @@ class MLPModel(nn.Module):
             else:
                 fig = px.line(metric.values,x='x',y='y',color='color')
             fig.show()
-
-
-def load_mlp_models(num_models: int, retrain_models: bool = False,
-                    num_training_epochs: int = 30, model_path: str = 'models',
-                    device = utils.set_torch_device()) -> list[MLPModel]:
-    """
-    Load MLP models from saved weights. Optionally retrains models if specified.
-
-    Parameters
-    ----------
-    num_models (int): Number of models to load
-    retrain_models (bool): If ``True``, retrains models instead of loading from disk. Default: False
-    num_training_epochs (int): Number of training epochs for retrained models. Default: 30
-    model_path (str): Path to use when loading/saving models to/from disk.
-    device (str): Device to use for training.
-    """
-
-    train_x, train_y = data.make_training_data(device=device)
-    models = []
-    if retrain_models:
-        for model_num in range(num_models):
-            model = MLPModel(device=device)
-            model.train(train_x,train_y,epochs=num_training_epochs)
-            torch.save(model.state_dict(), f'{model_path}/mlp_model_{model_num}.torch')
-            models.append(model)
-    else:
-        for model_num in range(num_models):
-            isc_model = MLPModel(device=device)
-            try:
-                isc_model.load_state_dict(torch.load(f'{model_path}/csc_model_{model_num}.torch'))
-            except:
-                print(f'Error loading model number {model_num}. Training model instead.')
-                isc_model.train(train_x,train_y,epochs=num_training_epochs)
-                torch.save(isc_model.state_dict(), f'{model_path}/csc_model_{model_num}.torch')
-            models.append(isc_model)
-    return models
-
-
-def load_comparison_models(num_models: int, retrain_models: bool = False,
-                           num_training_epochs: int = 30, model_path: str = 'models',
-                           device = utils.set_torch_device()) -> list[MLPModel]:
-    """
-    Load comparison models (trained without size correlations) from saved weights. Optionally retrains models if specified.
-
-    Parameters
-    ----------
-    num_models (int): Number of models to load
-    retrain_models (bool): If ``True``, retrains models instead of loading from disk. Default: False
-    num_training_epochs (int): Number of training epochs for retrained models. Default: 30
-    model_path (str): Path to use when loading/saving models to/from disk.
-    device (str): Device to use for training.
-    """
-
-    train_x_comparison, train_y_comparison = data.make_training_data_comparison(device=device)
-    comparison_models = []
-    if retrain_models:
-        for model_num in range(num_models):
-            comparison_model = MLPModel(device=device,num_objects=700,num_hub_hidden_units=64,
-                                            num_context_dependent_hidden_units=128,biases=False)
-            comparison_model.train(train_x_comparison,train_y_comparison,epochs=num_training_epochs)
-            torch.save(comparison_model.state_dict(), f'{model_path}/comparison_model_{model_num}-128hidden_nobias.torch')
-            comparison_models.append(comparison_model)
-    else:
-        for model_num in range(num_models):
-            comparison_model = MLPModel(device=device,num_objects=700,num_hub_hidden_units=64,
-                                            num_context_dependent_hidden_units=128,biases=False)
-            try:
-                comparison_model.load_state_dict(torch.load(f'{model_path}/comparison_model_{model_num}-128hidden_nobias.torch'))
-            except:
-                print(f'Error loading model number {model_num}. Training model instead.')
-                comparison_model.train(train_x_comparison,train_y_comparison,epochs=num_training_epochs)
-                torch.save(comparison_model.state_dict(), f'{model_path}/comparison_model_{model_num}-128hidden_nobias.torch')
-            comparison_models.append(comparison_model)
-    return comparison_models

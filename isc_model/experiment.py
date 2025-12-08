@@ -50,10 +50,6 @@ for model_idx in range(1):
             c+=1
         print(model_idx, errors.mean(),c)
         torch.save(simulation_model.state_dict(),os.path.join('isc_model/models',save_file))
-    errors = calc_model_error(simulation_model,train_x,train_y)
-    accs = ((simulation_model(train_x)[:,2541]>simulation_model(train_x)[:,2542])==train_y[:,2541]).float().cpu().detach().numpy()
-    error_data.append(pd.DataFrame({'model':[model_idx]*len(errors),'rt':errors,'error':1-accs,
-                                    'size_condition':size_conditions,'cat_condition':cat_conditions,'rand_condition':random_cat_conditions,'block_type':blocks}))
 
 for i in range(71):
     errors = calc_model_error(simulation_model,train_x,train_y,noise=1.2)
