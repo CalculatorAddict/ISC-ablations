@@ -23,7 +23,7 @@ class BCEMetric:
 
 class MLPModel(nn.Module):
     """
-    Creates a two-layer fully-connected Multi-layer Perceptron Model.
+    Creates a one-layer fully-connected Multi-layer Perceptron Model.
 
     Parameters
     ----------
@@ -82,19 +82,12 @@ class MLPModel(nn.Module):
         if device is None:
             device = utils.set_torch_device()
 
-        self.input_to_embedding_weights = nn.Linear(num_objects+num_tasks,num_context_dependent_hidden_units,device=device,bias=biases)
-        if hidden_layers == 1:
-            self.embedding_to_output_weights = nn.Linear(num_context_dependent_hidden_units,num_output,device=device,bias=biases)
-        else:
-            self.embedding_to_output_weights = nn.Linear(num_context_dependent_hidden_units,num_output,device=device,bias=biases)
-            self.embedding_to_output_weights = nn.Linear(num_context_dependent_hidden_units,num_output,device=device,bias=biases)
+        self.weights = nn.Linear(num_objects+num_tasks,num_output,device=device,bias=biases)
 
-        nn.init.uniform_(self.input_to_embedding_weights.weight,a=-.01,b=.01)
-        nn.init.uniform_(self.embedding_to_output_weights.weight,a=-.01,b=.01)
+        nn.init.uniform_(self.weights.weight,a=-.01,b=.01)
 
         if biases:
-            nn.init.uniform_(self.input_to_embedding_weights.bias,a=-.01,b=.01)
-            nn.init.uniform_(self.embedding_to_output_weights.bias,a=-.01,b=.01)
+            nn.init.uniform_(self.weights.bias,a=-.01,b=.01)
         else:
             pass
             # with torch.no_grad():
@@ -118,14 +111,12 @@ class MLPModel(nn.Module):
         concatenated_inputs = torch.cat((x[0],x[1]),dim=1)
         
         if noise:
-            embedding = self.input_to_embedding_weights(concatenated_inputs)
-            output = self.embedding_to_output_weights(torch.sigmoid(embedding))
+            output = self.weights(concatenated_inputs)
             if take_sigmoid:
                 output = torch.sigmoid(output)+torch.randn_like(output)*noise
             return output
 
-        embedding = torch.sigmoid(self.input_to_embedding_weights(concatenated_inputs))
-        output = self.embedding_to_output_weights(embedding)
+        output = torch.sigmoid(self.weights(concatenated_inputs))
         if take_sigmoid:
             output = torch.sigmoid(output)
         return output
