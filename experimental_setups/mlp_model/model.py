@@ -23,7 +23,7 @@ class BCEMetric:
 
 class MLPModel(nn.Module):
     """
-    Creates a one-layer fully-connected Multi-layer Perceptron Model.
+    Creates a two-layer fully-connected Multi-layer Perceptron Model.
 
     Parameters
     ----------
