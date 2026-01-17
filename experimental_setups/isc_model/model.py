@@ -224,19 +224,31 @@ class ISCModel(nn.Module):
         return tc_reps
     
 
-    def get_context_independent_reps(self) -> np.array:
-        item_x = torch.eye(self.num_objects,device=self.device)
-        context_x = torch.zeros((self.num_objects,self.num_tasks),device=self.device)
+    def get_context_independent_reps(self, indices = None) -> np.array:
+        """
+        Returns context-independent representations of the items corresponding to indices
+        
+        Parameters:
+            indices (list): A list of relevant array indices, whose representations will be returned. Default is all indices.
+        
+        Returns a np.array with the embeddings.
+        """
+        if indices is None:
+            indices = range(len(self.num_objects))
+        item_x = torch.eye(self.num_objects,device=self.device)[indices]
+        context_x = torch.zeros((len(indices),self.num_tasks),device=self.device)
         ind_reps = self.get_context_independent_rep([item_x,context_x]).cpu().detach().numpy()
         return ind_reps
     
 
-    def get_context_dependent_reps(self) -> np.array:
-        item_x = torch.eye(self.num_objects,device=self.device)
-        context_x = torch.zeros((self.num_objects,self.num_tasks),device=self.device)
-        dep_reps = np.zeros((self.num_tasks, self.num_objects, self.num_context_dependent_hidden_units))
+    def get_context_dependent_reps(self, indices = None) -> np.array:
+        if indices is None:
+            indices = range(len(self.num_objects))
+        item_x = torch.eye(self.num_objects,device=self.device)[indices]
+        context_x = torch.zeros((len(indices),self.num_tasks),device=self.device)
+        dep_reps = np.zeros((self.num_tasks, len(indices), self.num_context_dependent_hidden_units))
         for context in range(self.num_tasks):
-            context_x = torch.zeros((self.num_objects,self.num_tasks),device=self.device)
+            context_x = torch.zeros((len(indices),self.num_tasks),device=self.device)
             context_x[:,context] = 1
             dep_reps[context] = self.get_context_dependent_rep([item_x,context_x]).cpu().detach().numpy()
         return dep_reps

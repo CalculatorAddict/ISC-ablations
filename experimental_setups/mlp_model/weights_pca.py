@@ -5,6 +5,9 @@ import data
 import pandas as pd
 import torch
 from scipy.stats import ttest_rel
+from sklearn.decomposition import PCA
+import numpy as np
+import matplotlib.pyplot as plt
 
 from . import model
 
@@ -47,12 +50,43 @@ for model_idx in range(1):
     print(model_idx, errors.mean(),c)
     torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
 
-for i in range(71):
-    errors = calc_model_error(simulation_model,train_x,train_y,noise=1.2)
-    preds = simulation_model(train_x,noise=1.175)
-    accs = ((preds[:,2541]>preds[:,2542])==train_y[:,2541]).float().cpu().detach().numpy()
-    error_data.append(pd.DataFrame({'model':[i]*len(errors),'rt':errors,'error':1-accs,
-                                    'size_condition':size_conditions,'cat_condition':cat_conditions,
-                                    'rand_condition':random_cat_conditions,'block_type':blocks}))
-error_data = pd.concat(error_data,axis=0)
-error_data.to_csv(f'data/mlp_simulation_data_0200.csv')
+    print(len(train_x))
+
+# indices of stimuli used for behavioral simulation
+animal_indices = [118,104,30,48,116,105,115,29,57,59]
+instrument_indices = [248,252,261,263,257,262,253,266,267,260]
+
+experiment_stimulus_indices = animal_indices+instrument_indices
+
+
+# want context dependent reps for blocked setting
+embeddings = simulation_model.get_context_dependent_reps(experiment_stimulus_indices)[1]
+X = np.asarray(embeddings)
+
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X)
+
+plt.figure()
+plt.scatter(X_pca[:10, 0], X_pca[:10, 1], color='red', label='Animals')
+plt.scatter(X_pca[10:, 0], X_pca[10:, 1], color='blue', label='Instruments')
+plt.xlabel("PC1")
+plt.ylabel("PC2")
+plt.title("PCA of Embeddings (blocked)")
+plt.legend()
+plt.show()
+
+# want context dependent reps for interleaved setting
+embeddings = simulation_model.get_context_dependent_reps(experiment_stimulus_indices)[1]
+X = np.asarray(embeddings)
+
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X)
+
+plt.figure()
+plt.scatter(X_pca[:10, 0], X_pca[:10, 1], color='red', label='Animals')
+plt.scatter(X_pca[10:, 0], X_pca[10:, 1], color='blue', label='Instruments')
+plt.xlabel("PC1")
+plt.ylabel("PC2")
+plt.title("PCA of Embeddings (blocked)")
+plt.legend()
+plt.show()
