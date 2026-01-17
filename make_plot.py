@@ -9,6 +9,8 @@ import plotly.express as px
 
 pd.options.mode.copy_on_write = True # prevent SettingWithCopy warnings
 
+experiment_number = 0
+
 def _rotate_row_titles(fig, row_labels):
     """Rotate row titles vertically on the left edge regardless of subplot count."""
     for ann in fig.layout.annotations:
@@ -83,6 +85,12 @@ def make_model_plot(models, include_human=False):
                 mirror=True,ticks='outside',showgrid=False,titlefont=dict(size=20),
                 zeroline=True,zerolinecolor='black',zerolinewidth=1)
     _rotate_row_titles(fig, {"Categorically Blocked Condition", "Interleaved Condition"})
+
+    # save plot as png
+    global experiment_number
+    experiment_number += 1
+    fig.write_image(f"images/ablation{experiment_number}.png")
+
     fig.show()
 
 

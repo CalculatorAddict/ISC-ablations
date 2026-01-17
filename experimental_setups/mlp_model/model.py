@@ -114,6 +114,11 @@ class MLPModel(nn.Module):
             param.requires_grad = False
 
 
+    def get_context_dependent_rep(self, x: torch.Tensor) -> torch.Tensor:
+        concatenated_inputs = torch.cat((x[0],x[1]),dim=1)
+        item_in_context_rep = torch.sigmoid(self.input_to_embedding_weights(concatenated_inputs))
+        return item_in_context_rep
+
     def forward(self, x: torch.Tensor, take_sigmoid: bool=True, noise: float=0) -> torch.Tensor:
         concatenated_inputs = torch.cat((x[0],x[1]),dim=1)
         
@@ -161,3 +166,15 @@ class MLPModel(nn.Module):
             else:
                 fig = px.line(metric.values,x='x',y='y',color='color')
             fig.show()
+    
+    def get_context_dependent_reps(self, indices = None) -> np.array:
+        if indices is None:
+            indices = range(len(self.num_objects))
+        item_x = torch.eye(self.num_objects,device=self.device)[indices]
+        context_x = torch.zeros((len(indices),self.num_tasks),device=self.device)
+        dep_reps = np.zeros((self.num_tasks, len(indices), self.num_context_dependent_hidden_units))
+        for context in range(self.num_tasks):
+            context_x = torch.zeros((len(indices),self.num_tasks),device=self.device)
+            context_x[:,context] = 1
+            dep_reps[context] = self.get_context_dependent_rep([item_x,context_x]).cpu().detach().numpy()
+        return dep_reps
