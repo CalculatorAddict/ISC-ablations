@@ -2,7 +2,7 @@
 Easy-to-hard generalization replication study with 10 separate models trained for each curriculum type.
 '''
 
-import os
+import os, sys
 import warnings
 
 import data
@@ -15,7 +15,7 @@ from . import model
 warnings.filterwarnings('ignore')
 
 model_path = 'models'
-num_models = 10
+num_models = 20
 num_bootstrap_sims = 10000
 num_training_epochs = 30
 num_training_epochs_comparison = 10
@@ -32,8 +32,16 @@ size_task_idx = 33  # Index of the size task
 
 isc_models = model.load_isc_models(num_models, train_model, num_training_epochs, model_path)
 
-train_x_easy,train_y_easy,_,_,_,_ = data.make_behavioral_experiment_training_data(distractor_strength=.750)[:20*19]
-train_x_hard,train_y_hard,_,_,_,_ = data.make_behavioral_experiment_training_data(distractor_strength=.975)[:20*19]
+train_x_easy,train_y_easy,_,_,_,_ = data.make_behavioral_experiment_training_data(distractor_strength=.750)
+train_x_hard,train_y_hard,_,_,_,_ = data.make_behavioral_experiment_training_data(distractor_strength=.975)
+
+# filter inputs to always contain context
+train_x_easy = [train_x_easy[0][:20*19], train_x_easy[1][:20*19]]
+train_x_hard = [train_x_hard[0][:20*19], train_x_hard[1][:20*19]]
+
+# filter outputs to match inputs
+train_y_easy = train_y_easy[:20*19]
+train_y_hard = train_y_hard[:20*19]
 
 def calc_model_error(model,train_x,train_y,noise=0):
     errors = torch.abs(model(train_x,noise=noise)-train_y)[:,[2541,2542]].mean(axis=-1)
@@ -42,7 +50,7 @@ def calc_model_error(model,train_x,train_y,noise=0):
 # non-sequential curriculum
 error_data = []
 nonseq_models = []
-for model_idx in range(10):
+for model_idx in range(num_models):
     simulation_model = model.ISCModel(device='mps',num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
     save_file = f'isc_model-{model_idx}-easyhard-nonseq.torch'
     if save_file in os.listdir('models'):
@@ -53,32 +61,36 @@ for model_idx in range(10):
         torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
     nonseq_models += [simulation_model]
 
-for i in range(10):
+for i in range(num_models):
     preds = nonseq_models[i](train_x_hard)
     accs = ((preds[:,2541]>preds[:,2542])==train_y_hard[:,2541]).float().cpu().detach().numpy()
     error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'curriculum':['non-sequential']*len(accs)}))
 
 # interleaved curriculum
 interl_models = []
-for model_idx in range(10):
+for model_idx in range(num_models):
     simulation_model = model.ISCModel(device='mps',num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
     save_file = f'isc_model-{model_idx}-easyhard-interl.torch'
     if save_file in os.listdir('models'):
         simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
     else:
         simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True)
-        simulation_model.train(train_x_easy + train_x_hard, train_y_easy + train_y_hard, epochs = 1)
+
+        train_x = [torch.cat(p) for p in zip(train_x_easy, train_x_hard)]
+        train_y = torch.cat((train_y_easy, train_y_hard))
+
+        simulation_model.train(train_x, train_y, epochs = 1)
         torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
     interl_models += [simulation_model]
 
-for i in range(10):
+for i in range(num_models):
     preds = interl_models[i](train_x_hard)
     accs = ((preds[:,2541]>preds[:,2542])==train_y_hard[:,2541]).float().cpu().detach().numpy()
     error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'curriculum':['interleaved']*len(accs)}))
 
 # blocked curriculum
 blockd_models = []
-for model_idx in range(10):
+for model_idx in range(num_models):
     simulation_model = model.ISCModel(device='mps',num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
     save_file = f'isc_model-{model_idx}-easyhard-blockd.torch'
     if save_file in os.listdir('models'):
@@ -90,9 +102,9 @@ for model_idx in range(10):
         torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
     blockd_models += [simulation_model]
 
-for i in range(10):
-    preds = simulation_model(train_x_hard)
+for i in range(num_models):
+    preds = blockd_models[i](train_x_hard)
     accs = ((preds[:,2541]>preds[:,2542])==train_y_hard[:,2541]).float().cpu().detach().numpy()
     error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'curriculum':['seq-blocked']*len(accs)}))
 error_data = pd.concat(error_data,axis=0)
-error_data.to_csv(f'data/easyhard_noiseless_data.csv')
+error_data.to_csv(f'data/easyhard_noiseless_n20.csv')

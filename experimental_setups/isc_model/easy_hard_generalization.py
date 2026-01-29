@@ -28,8 +28,16 @@ size_task_idx = 33  # Index of the size task
 
 isc_models = model.load_isc_models(num_models, train_model, num_training_epochs, model_path)
 
-train_x_easy,train_y_easy,_,_,_,_ = data.make_behavioral_experiment_training_data(distractor_strength=.750)[:20*19]
-train_x_hard,train_y_hard,_,_,_,_ = data.make_behavioral_experiment_training_data(distractor_strength=.975)[:20*19]
+train_x_easy,train_y_easy,_,_,_,_ = data.make_behavioral_experiment_training_data(distractor_strength=.750)
+train_x_hard,train_y_hard,_,_,_,_ = data.make_behavioral_experiment_training_data(distractor_strength=.975)
+
+# filter inputs to always contain context
+train_x_easy = [train_x_easy[0][:20*19], train_x_easy[1][:20*19]]
+train_x_hard = [train_x_hard[0][:20*19], train_x_hard[1][:20*19]]
+
+# filter outputs to match inputs
+train_y_easy = train_y_easy[:20*19]
+train_y_hard = train_y_hard[:20*19]
 
 def calc_model_error(model,train_x,train_y,noise=0):
     errors = torch.abs(model(train_x,noise=noise)-train_y)[:,[2541,2542]].mean(axis=-1)
@@ -47,7 +55,7 @@ for model_idx in range(1):
         simulation_model.train(train_x_hard, train_y_hard, epochs = 2)
         torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
 
-for i in range(10):
+for i in range(num_models):
     preds = simulation_model(train_x_hard,noise=1.175)
     accs = ((preds[:,2541]>preds[:,2542])==train_y_hard[:,2541]).float().cpu().detach().numpy()
     error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'curriculum':['non-sequential']*len(accs)}))
@@ -60,10 +68,14 @@ for model_idx in range(1):
         simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
     else:
         simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True)
-        simulation_model.train(train_x_easy + train_x_hard, train_y_easy + train_y_hard, epochs = 1)
+
+        train_x = [torch.cat(p) for p in zip(train_x_easy, train_x_hard)]
+        train_y = torch.cat((train_y_easy, train_y_hard))
+
+        simulation_model.train(train_x, train_y, epochs = 1)
         torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
 
-for i in range(10):
+for i in range(num_models):
     preds = simulation_model(train_x_hard,noise=1.175)
     accs = ((preds[:,2541]>preds[:,2542])==train_y_hard[:,2541]).float().cpu().detach().numpy()
     error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'curriculum':['interleaved']*len(accs)}))
@@ -80,7 +92,7 @@ for model_idx in range(1):
         simulation_model.train(train_x_hard, train_y_hard, epochs = 1)
         torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
 
-for i in range(10):
+for i in range(num_models):
     preds = simulation_model(train_x_hard,noise=1.175)
     accs = ((preds[:,2541]>preds[:,2542])==train_y_hard[:,2541]).float().cpu().detach().numpy()
     error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'curriculum':['seq-blocked']*len(accs)}))
