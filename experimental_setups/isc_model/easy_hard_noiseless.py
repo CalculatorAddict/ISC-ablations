@@ -15,7 +15,7 @@ from . import model
 warnings.filterwarnings('ignore')
 
 model_path = 'models'
-num_models = 20
+num_models = 40
 num_bootstrap_sims = 10000
 num_training_epochs = 30
 num_training_epochs_comparison = 10
@@ -107,4 +107,4 @@ for i in range(num_models):
     accs = ((preds[:,2541]>preds[:,2542])==train_y_hard[:,2541]).float().cpu().detach().numpy()
     error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'curriculum':['seq-blocked']*len(accs)}))
 error_data = pd.concat(error_data,axis=0)
-error_data.to_csv(f'data/easyhard_noiseless_n20.csv')
+error_data.to_csv(f'data/easyhard_noiseless_n{num_models}.csv')
