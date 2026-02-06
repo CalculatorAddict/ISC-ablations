@@ -280,8 +280,6 @@ class HebbianModel(nn.Module):
             w_item.weight += dw_item
             w_task.weight += dw_task
 
-            # print(w_item.weight)
-
             self.optimizer.zero_grad()
 
     def _batched_ema(self, task_batch, x_ema_prev : torch.Tensor = None, alpha : float = 0.05):

@@ -16,7 +16,7 @@ num_models = 10
 num_bootstrap_sims = 10000
 num_training_epochs = 30
 num_training_epochs_comparison = 10
-num_epochs = 10 # Number of epochs of finetuning
+num_epochs = 40 # Number of epochs of finetuning
 train_model = False
 train_comparison_model = False
 
@@ -47,6 +47,7 @@ error_data = []
 
 isc_models = isc_model.model.load_isc_models(num_models)
 
+
 simulation_models_interleaved = []
 for model_idx in range(num_models):
     simulation_model = model.HebbianModel(device='mps',num_tasks=5,num_context_dependent_hidden_units=128)
@@ -60,7 +61,6 @@ for model_idx in range(num_models):
         # torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
 
     simulation_models_interleaved += [simulation_model]
-    sys.exit(0)
 
 for i in range(num_models):
     preds = simulation_models_interleaved[i](train_x)
@@ -130,4 +130,4 @@ for i in range(num_models):
     error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'architecture':['ISC']*len(accs),'condition':['blocked']*len(accs)}))
 
 error_data = pd.concat(error_data,axis=0)
-error_data.to_csv(f'data/hebbian_simulation_data.csv')
+error_data.to_csv(f'data/hebbian_simulation_n{num_epochs}.csv')
