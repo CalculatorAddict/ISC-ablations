@@ -15,7 +15,7 @@ from . import model
 warnings.filterwarnings('ignore')
 
 model_path = 'models'
-num_models = 40
+num_models = 10
 num_bootstrap_sims = 10000
 num_training_epochs = 30
 num_training_epochs_comparison = 10
