@@ -6,20 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 import utils
 import sys
-
-
-class BCEMetric:
-    """
-    Binary cross-entropy metric for tracking during training.
-    """
-    def __init__(self) -> None:
-        self.name='bce'
-        self.values = []
-        self.fn = nn.BCELoss()
-
-
-    def __call__(self, y_hat: torch.Tensor, y: torch.Tensor, model=None) -> list[np.array]:
-        self.values.append(self.fn(y,y_hat).cpu().detach().numpy())
+from ..isc_model.model import BCEMetric
     
 
 class HebbianModel(nn.Module):
@@ -86,11 +73,13 @@ class HebbianModel(nn.Module):
                  num_tasks: int = 36, lr: float = .05, lr_hebb: float = .001,
                  device=None, biases: bool = True,
                  has_sluggish_task_neurons: bool = True,
-                 has_hebbian_weight_updates: bool = True) -> None:
+                 has_hebbian_weight_updates: bool = True,
+                 alpha_ema: float = 0.05) -> None:
         super().__init__()
 
         self.lr = lr
         self.lr_hebb = lr_hebb # learning rate for Hebbian weight updates
+        self.alpha_ema = alpha_ema # sluggishness parameter
         self.has_sluggish_task_neurons = has_sluggish_task_neurons
         self.has_hebbian_weight_updates = has_hebbian_weight_updates
         
@@ -282,7 +271,7 @@ class HebbianModel(nn.Module):
 
             self.optimizer.zero_grad()
 
-    def _batched_ema(self, task_batch, x_ema_prev : torch.Tensor = None, alpha : float = 0.05):
+    def _batched_ema(self, task_batch, x_ema_prev : torch.Tensor = None):
         """
         EMA computed sequentially across elements in the batch.
 
@@ -295,6 +284,7 @@ class HebbianModel(nn.Module):
         x_ema_batch : Tensor [B, D]   # EMA for each element in batch
         x_ema_last  : Tensor [D]      # EMA at end of batch (carry to next batch)
         """
+        alpha = self.alpha_ema
         res = torch.zeros_like(task_batch)
 
         res[0] = task_batch[0] if x_ema_prev is None else alpha * x_ema_prev + (1-alpha) * task_batch[0]
