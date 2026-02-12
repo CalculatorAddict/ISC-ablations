@@ -48,7 +48,7 @@ def calc_model_error(model,train_x,train_y,noise=0):
 
 isc_models = isc_model.load_isc_models(num_models)
 
-def run_hebbian_experiment(num_epochs: int = num_epochs, alpha: float = 0.05):
+def run_hebbian_experiment(num_epochs: int = 10, alpha: float = 0.05, save_models: bool = False):
     train_x, train_y = prepare_experiment_data()
     error_data = []
 
@@ -62,7 +62,8 @@ def run_hebbian_experiment(num_epochs: int = num_epochs, alpha: float = 0.05):
         else:
             simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True)
             simulation_model.train(train_x, train_y, epochs = num_epochs, batch_size = 38, is_blocked=False)
-            # torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+            if save_models:
+                torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
 
         simulation_models_interleaved += [simulation_model]
 
@@ -93,7 +94,7 @@ def run_hebbian_experiment(num_epochs: int = num_epochs, alpha: float = 0.05):
 
     return error_data
 
-def run_hebbian_baseline(num_epochs: int = num_epochs):
+def run_hebbian_baseline(num_epochs: int = 10):
     train_x, train_y = prepare_experiment_data()
     error_data = []
 
