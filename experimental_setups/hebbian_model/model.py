@@ -193,6 +193,7 @@ class HebbianModel(nn.Module):
         for metric in self.metrics:
             metric(self(x),y,self)
         for epoch in range(epochs):
+            self.epoch = epoch
             n_steps = 0
             x_ema_prev = None
             x_train, y_train, x_ema_prev = self._train_load(x, y, is_blocked, x_ema_prev)
@@ -256,20 +257,50 @@ class HebbianModel(nn.Module):
         return x_train, y_train, x_ema_prev
 
     def _oja_update(self, x):
-        w_item = self.item_input_to_hub_weights
-        w_task = self.context_input_to_task_context_rep_weights
+        """
+        Apply Oja's update rule to the model's task representation to CD weights on input x.
+        """
+        # w_item = self.hub_to_context_dependent_rep_weights.weight
+        # w_task = self.context_input_to_task_context_rep_weights.weight
 
-        y_item = self.item_input_to_hub_weights(x[0])
-        y_task = self.context_input_to_task_context_rep_weights(x[1])
+        # y_item = self.item_input_to_hub_weights(x[0])
+        # y_task = self.context_input_to_task_context_rep_weights(x[1])
+
+        w_task = self.task_context_rep_to_context_dependent_rep_weights.weight
+
+        task_rep = self.context_input_to_task_context_rep_weights(x[1])
+        y_task = self.task_context_rep_to_context_dependent_rep_weights(task_rep)
 
         with torch.no_grad():
-            dw_item = (self.lr_hebb / x[0].size(0)) * torch.t(y_item) @ (x[0] - y_item @ w_item.weight)
-            dw_task = (self.lr_hebb / x[1].size(0)) * torch.t(y_task) @ (x[1] - y_task @ w_task.weight)
+            # dw_item = (self.lr_hebb / x[0].size(0)) * torch.t(y_item) @ (x[0] - y_item @ w_item)
+            # dw_task = (self.lr_hebb / x[1].size(0)) * torch.t(y_task) @ (x[1] - y_task @ w_task)
 
-            w_item.weight += dw_item
-            w_task.weight += dw_task
+            # w_item.add_(dw_item)
+            # w_task.add_(dw_task)
+            s = self._spectral_norm_power(y_task, n_iter=5)  # largest singular value
+            lambda_max = (s * s) / y_task.size(0)            # batch size adjusted eigenvalue
+            lr_hebb_eff = self.lr_hebb / (lambda_max + 1e-8) # norm-adjusted lr
 
-            self.optimizer.zero_grad()
+            oja_activation = torch.t(y_task) @ (task_rep - y_task @ w_task)
+
+            dw_task = (lr_hebb_eff / task_rep.size(0)) * oja_activation
+            w_task.add_(dw_task)
+
+        self.optimizer.zero_grad()
+
+        # print("task_rep", task_rep.shape, "y_task", y_task.shape, "w_task", w_task.shape)
+
+
+        if (torch.isnan(w_task.norm())):
+            print(
+                f"step={self.epoch} | "
+                f"||w||={w_task.norm().item():.4e} | "
+                f"||x||={task_rep.norm().item():.4e} | "
+                f"y_max={y_task.abs().max().item():.4e} | "
+                f"Δw_norm={dw_task.norm().item():.4e} | "
+            )
+            
+            raise ValueError("w_task is nan")
 
     def _batched_ema(self, task_batch, x_ema_prev : torch.Tensor = None):
         """
@@ -310,6 +341,18 @@ class HebbianModel(nn.Module):
         #     y = y + (alpha ** (t + 1)).unsqueeze(1) * x_ema_prev
 
         # return y, y[-1]
+
+    def _spectral_norm_power(self, Y, n_iter=5, eps=1e-8):
+        # Y: (B, H) or (B, D) tensor
+        v = torch.randn(Y.size(1), device=Y.device, dtype=Y.dtype)
+        v = v / (v.norm() + eps)
+
+        for _ in range(n_iter):
+            v = Y.T @ (Y @ v)          # power iter on (Y^T Y)
+            v = v / (v.norm() + eps)
+
+        s = (Y @ v).norm()             # largest singular value of Y
+        return s
 
     def plot_metrics(self) -> None:
         for metric in self.metrics:

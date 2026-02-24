@@ -12,7 +12,6 @@ from .. import isc_model
 warnings.filterwarnings('ignore')
 
 model_path = 'models'
-num_models = 10
 num_bootstrap_sims = 10000
 num_training_epochs = 30
 num_training_epochs_comparison = 10
@@ -46,9 +45,16 @@ def calc_model_error(model,train_x,train_y,noise=0):
     errors = torch.abs(model(train_x,noise=noise)-train_y)[:,[2541,2542]].mean(axis=-1)
     return errors.cpu().detach().numpy()
 
-isc_models = isc_model.load_isc_models(num_models)
+def run_hebbian_experiment(
+        num_epochs: int = 10,
+        num_models: int = 10, 
+        alpha: float = 0.05, 
+        lr_hebb: float = 10e-3,
+        save_models: bool = False, 
+        unfreeze_task_to_cd_weights: bool=False,
+        ):
+    isc_models = isc_model.load_isc_models(num_models)
 
-def run_hebbian_experiment(num_epochs: int = 10, alpha: float = 0.05, save_models: bool = False):
     train_x, train_y = prepare_experiment_data()
     error_data = []
 
@@ -60,7 +66,7 @@ def run_hebbian_experiment(num_epochs: int = 10, alpha: float = 0.05, save_model
         if save_file in os.listdir('models'):
             simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
         else:
-            simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True)
+            simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True, unfreeze_task_to_cd_weights=unfreeze_task_to_cd_weights)
             simulation_model.train(train_x, train_y, epochs = num_epochs, batch_size = 38, is_blocked=False)
             if save_models:
                 torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
@@ -70,7 +76,14 @@ def run_hebbian_experiment(num_epochs: int = 10, alpha: float = 0.05, save_model
     for i in range(num_models):
         preds = simulation_models_interleaved[i](train_x)
         accs = ((preds[:,2541]>preds[:,2542])==train_y[:,2541]).float().cpu().detach().numpy()
-        error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'architecture':['Hebbian']*len(accs),'condition':['interleaved']*len(accs),'alpha':[alpha]*len(accs)}))
+        error_data.append(pd.DataFrame({
+            'model':[i]*len(accs),
+            'acc':accs,
+            'architecture':['Hebbian']*len(accs),
+            'condition':['interleaved']*len(accs),
+            'alpha':[alpha]*len(accs),
+            'lr_hebb':[lr_hebb]*len(accs),
+        }))
 
 
     simulation_models_blocked = []
@@ -94,7 +107,9 @@ def run_hebbian_experiment(num_epochs: int = 10, alpha: float = 0.05, save_model
 
     return error_data
 
-def run_hebbian_baseline(num_epochs: int = 10):
+def run_hebbian_baseline(num_epochs: int = 10, num_models: int = 10):
+    isc_models = isc_model.load_isc_models(num_models)
+
     train_x, train_y = prepare_experiment_data()
     error_data = []
 
