@@ -50,6 +50,7 @@ def run_hebbian_experiment(
         num_models: int = 10, 
         alpha: float = 0.05, 
         lr_hebb: float = 10e-3,
+        batch_size: int = 38,
         save_models: bool = False, 
         unfreeze_task_to_cd_weights: bool=False,
         ):
