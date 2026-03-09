@@ -212,7 +212,7 @@ class HebbianModel(nn.Module):
 
                 if self.has_hebbian_weight_updates:
                     # Hebbian update with Oja's rule
-                    self._oja_update([x_train[0][batch_idx],x_train[1][batch_idx]])
+                    self._oja_update([x_train[0][batch_idx],x_train[1][batch_idx]],normalize_update = True if batch_size > 1 else False)
 
                 n_steps += 1
 
@@ -256,9 +256,13 @@ class HebbianModel(nn.Module):
 
         return x_train, y_train, x_ema_prev
 
-    def _oja_update(self, x):
+    def _oja_update(self, x, normalize_update: bool = False):
         """
         Apply Oja's update rule to the model's task representation to CD weights on input x.
+
+        Parameters:
+        - x (torch.Tensor): the input batch
+        - normalize_update (bool): whether to apply spectral normalization to the update matrix
         """
         # w_item = self.hub_to_context_dependent_rep_weights.weight
         # w_task = self.context_input_to_task_context_rep_weights.weight
@@ -277,9 +281,12 @@ class HebbianModel(nn.Module):
 
             # w_item.add_(dw_item)
             # w_task.add_(dw_task)
-            s = self._spectral_norm_power(y_task, n_iter=5)  # largest singular value
-            lambda_max = (s * s) / y_task.size(0)            # batch size adjusted eigenvalue
-            lr_hebb_eff = self.lr_hebb / (lambda_max + 1e-8) # norm-adjusted lr
+            if normalize_update:
+                s = self._spectral_norm_power(y_task, n_iter=5)  # largest singular value
+                lambda_max = (s * s) / y_task.size(0)            # batch size adjusted eigenvalue
+                lr_hebb_eff = self.lr_hebb / (lambda_max + 1e-8) # norm-adjusted lr
+            else:
+                lr_hebb_eff = self.lr_hebb
 
             oja_activation = torch.t(y_task) @ (task_rep - y_task @ w_task)
 
@@ -299,7 +306,7 @@ class HebbianModel(nn.Module):
                 f"y_max={y_task.abs().max().item():.4e} | "
                 f"Δw_norm={dw_task.norm().item():.4e} | "
             )
-            
+
             raise ValueError("w_task is nan")
 
     def _batched_ema(self, task_batch, x_ema_prev : torch.Tensor = None):
