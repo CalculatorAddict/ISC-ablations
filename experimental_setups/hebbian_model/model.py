@@ -406,3 +406,65 @@ class HebbianModel(nn.Module):
             context_x[:,context] = 1
             dep_reps[context] = self.get_context_dependent_rep([item_x,context_x]).cpu().detach().numpy()
         return dep_reps
+
+
+class OjaMiniModel(nn.Module):
+    def __init__(self, lr: float = 10e-3):
+        super().__init__()
+
+        self.lr = lr
+
+        self.input_to_embedding = nn.Linear(5,16)
+        self.embedding_to_output = nn.Linear(16,1)
+
+        nn.init.uniform_(self.input_to_embedding.weight,a=-.01,b=.01)
+        nn.init.uniform_(self.input_to_embedding.bias,a=-.01,b=.01)
+        nn.init.uniform_(self.embedding_to_output.weight,a=-.01,b=.01)
+        nn.init.uniform_(self.embedding_to_output.bias,a=-.01,b=.01)
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+    
+    def forward(self, x: torch.Tensor, take_sigmoid: bool=True):
+        embedding = self.input_to_embedding(x)
+        output = self.embedding_to_output(embedding)
+        if take_sigmoid:
+            output = torch.sigmoid(output)
+        return output
+    
+    def train(self, x: torch.Tensor, epochs: int = 500, batch_size: int = 1):
+        n = x.shape[0]
+
+        scaler = StandardScaler()
+        data_scaled = scaler.fit_transform(self.input_to_embedding(x).cpu().numpy())
+
+        pca = PCA(n_components=1)
+        pca.fit(data_scaled)
+        first_pc = pca.components_[0]
+
+        for e in range(epochs):
+            perm = torch.randperm(n)
+            for i in range(0, n, batch_size):
+                batch_idxs = perm[i:i+batch_size]
+                batch = x[batch_idxs]
+                emb = self.input_to_embedding(batch)
+                y = self.forward(batch, take_sigmoid=False)
+                emb = self.input_to_embedding(batch)  # (batch, 16)
+                dw = (y * (emb - y * self.embedding_to_output.weight)).mean(dim=0, keepdim=True)
+                with torch.no_grad():
+                    self.embedding_to_output.weight += self.lr * dw
+            if (e%50==0): 
+                # Compare with Oja weight vector (handle sign ambiguity)
+                oja_weight = self.embedding_to_output.weight[0].cpu().numpy()
+                cosine_sim = np.dot(first_pc, oja_weight) / (np.linalg.norm(first_pc) * np.linalg.norm(oja_weight))
+                print(f"Cosine similarity: {abs(cosine_sim)}")
+                print(f"Weight norm: {self.embedding_to_output.weight.norm().item()}")
+                embs = self.input_to_embedding(x).cpu().detach().numpy()
+                
+                unique_embs = np.unique(embs, axis=0)
+                direction = unique_embs[0] - unique_embs[1]
+                direction /= np.linalg.norm(direction)
+                oja_weight = self.embedding_to_output.weight[0].cpu().numpy()
+                cosine_sim = abs(np.dot(direction, oja_weight) / np.linalg.norm(oja_weight))
+                print(f"Cosine sim with context direction: {cosine_sim}")
