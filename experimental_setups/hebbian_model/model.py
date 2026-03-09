@@ -1,3 +1,6 @@
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import StandardScaler
+
 import data
 import numpy as np
 import plotly.express as px
