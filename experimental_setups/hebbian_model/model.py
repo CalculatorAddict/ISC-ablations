@@ -1,3 +1,4 @@
+import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import StandardScaler
 
@@ -195,10 +196,11 @@ class HebbianModel(nn.Module):
             return [0]
         for metric in self.metrics:
             metric(self(x),y,self)
+
+        x_ema_prev = None
         for epoch in range(epochs):
             self.epoch = epoch
             n_steps = 0
-            x_ema_prev = None
             x_train, y_train, x_ema_prev = self._train_load(x, y, is_blocked, x_ema_prev)
 
             for batch_start in range(0,len(y),batch_size):
