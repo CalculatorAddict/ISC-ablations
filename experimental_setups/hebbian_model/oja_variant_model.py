@@ -4,6 +4,7 @@ from sklearn.discriminant_analysis import StandardScaler
 
 import data
 import numpy as np
+import random
 import plotly.express as px
 import torch
 import torch.nn as nn
@@ -11,7 +12,6 @@ import torch.optim as optim
 import utils
 import sys
 from ..isc_model.model import BCEMetric
-    
 
 class SimpleHebbianModel(nn.Module):
     """
@@ -125,12 +125,19 @@ class SimpleHebbianModel(nn.Module):
 
 
     def load_old_model_weights(self, state_dict: dict) -> None:
-        unfrozen_weights = ['context_input_to_context_dependent_rep_weights.weight']
+        unfrozen_weights = [
+            # 'context_input_to_context_dependent_rep_weights.weight', 
+            'context_dependent_rep_to_output_weights.weight',
+            'context_dependent_rep_to_output_weights.bias',
+            'hub_to_output_weights.weight',
+            'hub_to_output_weights.bias',
+        ]
 
         for name, param in state_dict.items():
-            if name not in unfrozen_weights:
+            if name in self.state_dict():
                 self.state_dict()[name].copy_(param)
-                param.requires_grad = False
+                if name not in unfrozen_weights:
+                    param.requires_grad = False
 
     def get_context_independent_rep(self, x: torch.Tensor) -> torch.Tensor:
         hub_rep = torch.sigmoid(self.item_input_to_hub_weights(x[0]))
@@ -157,32 +164,109 @@ class SimpleHebbianModel(nn.Module):
         return output
 
 
-    def train(self, x: torch.Tensor, y: torch.Tensor, epochs: int = 1, batch_size: int = 1) -> list:
+    # def train(self, x: torch.Tensor, y: torch.Tensor, epochs: int = 1, batch_size: int = 1) -> list:
+    #     if epochs < 1:
+    #         return [0]
+    #     for metric in self.metrics:
+    #         metric(self(x),y,self)
+    #     for epoch in range(epochs):
+    #         n_steps = 0
+    #         batch_idxs = np.random.permutation(range(len(y)))
+    #         for batch_start in range(0,len(y),batch_size):
+    #             batch_idx = batch_idxs[batch_start:min(batch_start+batch_size,len(y))]
+    #             self.optimizer.zero_grad()
+    #             output = self([x[0][batch_idx],x[1][batch_idx]],take_sigmoid=False)
+    #             loss = self.loss_fn(output,y[batch_idx])
+    #             loss.backward()
+    #             self.optimizer.step()
+    #             n_steps += 1
+
+    #             if self.has_hebbian_weight_updates:
+    #                 # Hebbian update with Oja's rule
+    #                 self._oja_update([x[0][batch_idx],x[1][batch_idx]],normalize_update = True if batch_size > 1 else False)
+    #                 if batch_size != 1:
+    #                     raise ValueError("Oja update requires online updating after each iteration!")
+
+
+    #         for metric in self.metrics:
+    #             metric(self(x),y,self)
+    #     return self.metrics
+    
+
+    def train(self, x: torch.Tensor, y: torch.Tensor, epochs: int = 1, batch_size: int = 64, is_blocked: bool = False) -> list:
         if epochs < 1:
             return [0]
         for metric in self.metrics:
             metric(self(x),y,self)
+
+        x_ema_prev = None
         for epoch in range(epochs):
+            self.epoch = epoch
             n_steps = 0
-            batch_idxs = np.random.permutation(range(len(y)))
+            x_train, y_train, x_ema_prev = self._train_load(x, y, is_blocked, x_ema_prev)
+
             for batch_start in range(0,len(y),batch_size):
-                batch_idx = batch_idxs[batch_start:min(batch_start+batch_size,len(y))]
+                batch_end = min(batch_start + batch_size, len(y))
+                batch_idx = range(batch_start,batch_end)
+
                 self.optimizer.zero_grad()
-                output = self([x[0][batch_idx],x[1][batch_idx]],take_sigmoid=False)
-                loss = self.loss_fn(output,y[batch_idx])
+                output = self([x_train[0][batch_idx],x_train[1][batch_idx]],take_sigmoid=False)
+
+                # SGD update
+                loss = self.loss_fn(output,y_train[batch_idx])
                 loss.backward()
                 self.optimizer.step()
-                n_steps += 1
 
                 if self.has_hebbian_weight_updates:
                     # Hebbian update with Oja's rule
-                    self._oja_update([x[0][batch_idx],x[1][batch_idx]],normalize_update = True if batch_size > 1 else False)
+                    self._oja_update([x_train[0][batch_idx],x_train[1][batch_idx]],normalize_update = True if batch_size > 1 else False)
 
+                n_steps += 1
 
             for metric in self.metrics:
                 metric(self(x),y,self)
         return self.metrics
     
+    def _train_load(self, x: torch.Tensor, y: torch.Tensor, is_blocked: bool, x_ema_prev: torch.Tensor = None):
+        train_data = [x[0], x[1], y]
+
+        # randomly permute training data
+        if is_blocked:
+            # if blocked, permute within each block then arrange blocks in sequence
+            block_size = train_data[0].size(0)//2
+
+            train_data_animal = [t[:block_size] for t in train_data]
+            idxs_animal = torch.randperm(block_size)
+            train_data_animal = [t[idxs_animal] for t in train_data_animal]
+
+            train_data_instrument = [t[block_size:] for t in train_data]
+            idxs_instrument = torch.randperm(block_size)
+            train_data_instrument = [t[idxs_instrument] for t in train_data_instrument]
+
+            # randomly pick which block goes first
+            if random.random() < 0.5:
+                train_data[0] = torch.cat((train_data_animal[0], train_data_instrument[0]))
+                train_data[1] = torch.cat((train_data_animal[1], train_data_instrument[1]))
+                train_data[2] = torch.cat((train_data_animal[2], train_data_instrument[2]))
+            else:
+                train_data[0] = torch.cat((train_data_instrument[0], train_data_animal[0]))
+                train_data[1] = torch.cat((train_data_instrument[1], train_data_animal[1]))
+                train_data[2] = torch.cat((train_data_instrument[2], train_data_animal[2]))
+
+        else:
+            idxs = torch.randperm(train_data[0].size(0))
+            train_data = [t[idxs] for t in train_data]
+
+        x_train = train_data[:2]
+        y_train = train_data[2]
+
+
+        x_ema_prev = None
+
+        if self.has_sluggish_task_neurons:
+            x_train[1], x_ema_prev = self._batched_ema(x_train[1], x_ema_prev)
+
+        return x_train, y_train, x_ema_prev
 
     def _oja_update(self, x, normalize_update: bool = False):
         """
@@ -198,10 +282,10 @@ class SimpleHebbianModel(nn.Module):
         # y_item = self.item_input_to_hub_weights(x[0])
         # y_task = self.context_input_to_task_context_rep_weights(x[1])
 
-        w_task = self.task_context_rep_to_context_dependent_rep_weights.weight
+        w_task = self.context_input_to_context_dependent_rep_weights.weight
 
-        task_rep = self.context_input_to_task_context_rep_weights(x[1])
-        y_task = self.task_context_rep_to_context_dependent_rep_weights(task_rep)
+        task_rep = x[1]
+        y_task = self.context_input_to_context_dependent_rep_weights(task_rep)
 
         with torch.no_grad():
             # dw_item = (self.lr_hebb / x[0].size(0)) * torch.t(y_item) @ (x[0] - y_item @ w_item)
@@ -248,6 +332,29 @@ class SimpleHebbianModel(nn.Module):
 
         s = (Y @ v).norm()             # largest singular value of Y
         return s
+    
+    def _batched_ema(self, task_batch, x_ema_prev : torch.Tensor = None):
+        """
+        EMA computed sequentially across elements in the batch.
+
+        task_batch : Tensor [B, D]
+        x_ema_prev : Tensor [D] or None
+        alpha      : float
+
+        Returns
+        -------
+        x_ema_batch : Tensor [B, D]   # EMA for each element in batch
+        x_ema_last  : Tensor [D]      # EMA at end of batch (carry to next batch)
+        """
+        alpha = self.alpha_ema
+        res = torch.zeros_like(task_batch)
+
+        res[0] = task_batch[0] if x_ema_prev is None else alpha * x_ema_prev + (1-alpha) * task_batch[0]
+
+        for i in range(1, res.size(0)):
+            res[i] = alpha * res[i-1] + (1-alpha) * task_batch[i]
+
+        return res, res[-1]
 
     def plot_metrics(self) -> None:
         for metric in self.metrics:
