@@ -18,7 +18,7 @@ class BCEMetric:
 
 
     def __call__(self, y_hat: torch.Tensor, y: torch.Tensor, model=None) -> list[np.array]:
-        self.values.append(self.fn(y,y_hat).cpu().detach().numpy())
+        self.values.append(float(self.fn(y, y_hat).detach().cpu().item()))
     
 
 class ISCModel(nn.Module):
