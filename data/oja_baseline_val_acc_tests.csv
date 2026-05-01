@@ -1,0 +1,5 @@
+test,comparison_type,alternative,mean_acc_blocked,mean_acc_interleaved,mean_acc_diff_blocked_minus_interleaved,p_value,mean_acc_isc,mean_acc_hebbian,mean_acc_diff_isc_minus_hebbian
+ISC blocked < ISC interleaved,within_model_curriculum,blocked accuracy < interleaved accuracy,0.7610526315789474,0.9110526315789473,-0.1499999999999999,3.009815962966745e-14,,,
+Hebbian blocked < Hebbian interleaved,within_model_curriculum,blocked accuracy < interleaved accuracy,0.8447368421052632,0.896842105263158,-0.052105263157894766,0.006827527098238011,,,
+ISC blocked vs Hebbian blocked,cross_model_curriculum_matched,ISC accuracy != Hebbian accuracy,,,,0.0005928556170032667,0.7610526315789474,0.8447368421052632,-0.0836842105263158
+ISC interleaved vs Hebbian interleaved,cross_model_curriculum_matched,ISC accuracy != Hebbian accuracy,,,,0.12854568462914306,0.9110526315789473,0.896842105263158,0.01421052631578934
