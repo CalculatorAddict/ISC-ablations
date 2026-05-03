@@ -30,7 +30,7 @@ gr()
 # ═══════════════════════════════════════════════════════════════════
 
 const DIM     = 2
-const EIGVALS = Float64[5, 3]
+const EIGVALS = Float64[15,0]
 const COV     = Diagonal(EIGVALS)               # C = diag(λ₁,…,λₙ)
 const COVSQ   = Diagonal(sqrt.(EIGVALS))         # C^{1/2}
 const E1      = vcat(1.0, zeros(DIM - 1))        # principal eigenvector
