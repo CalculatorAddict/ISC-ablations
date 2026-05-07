@@ -30,7 +30,7 @@ gr()
 # ═══════════════════════════════════════════════════════════════════
 
 const DIM     = 2
-const EIGVALS = Float64[15,0]
+const EIGVALS = Float64[5,3]
 const COV     = Diagonal(EIGVALS)               # C = diag(λ₁,…,λₙ)
 const COVSQ   = Diagonal(sqrt.(EIGVALS))         # C^{1/2}
 const E1      = vcat(1.0, zeros(DIM - 1))        # principal eigenvector
@@ -140,8 +140,8 @@ function run_experiment(ηs, ρs, T, nruns; seed = 42)
         for r in 1:nruns
             # Same w₀ for each run index across all (η, ρ)
             rng_w = MersenneTwister(seed + r)
-            w0 = rand(rng_w, DIM) .- 0.5                    # Uniform [-0.5, 0.5] per dimension
-            # Don't normalise — keep ‖w₀‖ random
+            w0 = randn(rng_w, DIM)
+            w0 ./= norm(w0)
 
             # Input sequence depends on (η, ρ, r)
             rng_x = MersenneTwister(seed + 1000 * r + hash((η, ρ)) % 100_000)
@@ -166,7 +166,49 @@ function run_experiment(ηs, ρs, T, nruns; seed = 42)
 end
 
 # ═══════════════════════════════════════════════════════════════════
-# Plotting
+# Plotting helpers (used only by the stability map)
+# ═══════════════════════════════════════════════════════════════════
+
+# Map a continuous value into the index position used by a categorical-style
+# axis. Linearly extrapolates outside the data range so the boundary curve
+# can be drawn out to the diagram edges.
+function _cat_pos(values, target)
+    n = length(values)
+    if target < values[1]
+        return 1.0 - (values[1] - target) / (values[2] - values[1])
+    elseif target > values[end]
+        return float(n) + (target - values[end]) / (values[end] - values[end-1])
+    end
+    for i in 1:n-1
+        if values[i] <= target <= values[i+1]
+            return i + (target - values[i]) / (values[i+1] - values[i])
+        end
+    end
+    return NaN
+end
+
+# Overlay the stability boundary η̂ λ₁ = 2  (i.e. η = c (1−ρ), c = 2/λ₁).
+# The curve is sampled wide and clipped to the diagram bounds [0.5, N+0.5],
+# i.e. to the outer edges of the boundary cells rather than their centres.
+function add_stability_line!(p, ηs, ρs; c = 0.4, npts = 1000, kwargs...)
+    xlo, xhi = 0.5, length(ρs) + 0.5
+    ylo, yhi = 0.5, length(ηs) + 0.5
+    xs, ys = Float64[], Float64[]
+    for ρ in range(first(ρs) - 1.0, last(ρs) + 1.0, length = npts)
+        η_t = c * (1 - ρ)
+        xi  = _cat_pos(ρs, ρ)
+        yi  = _cat_pos(ηs, η_t)
+        (xlo <= xi <= xhi) || continue
+        (ylo <= yi <= yhi) || continue
+        push!(xs, xi)
+        push!(ys, yi)
+    end
+    plot!(p, xs, ys; color = :white, lw = 3, ls = :solid,
+          label = L"\hat\eta\lambda_1 = 2", kwargs...)
+end
+
+# ═══════════════════════════════════════════════════════════════════
+# Figures
 # ═══════════════════════════════════════════════════════════════════
 
 function fig_phase_diagram(res, ηs, ρs)
@@ -185,6 +227,20 @@ function fig_fluctuation_map(res, ηs, ρs)
         title  = L"\mathrm{Std\ of\ final\ alignment}",
         color = :inferno,
         size = (620, 440), margin = 5Plots.mm)
+end
+
+function fig_stability_map(res, ηs, ρs, nruns)
+    Z = [res[(η, ρ)].n_valid / nruns for η in ηs, ρ in ρs]
+    p = heatmap(1:length(ρs), 1:length(ηs), Z;
+        xticks = (1:length(ρs), string.(ρs)),
+        yticks = (1:length(ηs), string.(ηs)),
+        xlabel = L"\rho", ylabel = L"\eta",
+        title  = "Fraction of non-divergent runs",
+        color = :RdYlGn, clims = (0.0, 1.0),
+        size = (620, 440), margin = 5Plots.mm,
+        legend = false)
+    add_stability_line!(p, ηs, ρs)
+    p
 end
 
 function fig_convergence_vs_eta(res, ηs, ρ_fix, T)
@@ -211,8 +267,7 @@ function fig_convergence_vs_rho(res, η_fix, ρs, T)
     p
 end
 
-function fig_norm_dynamics(res, η, ρ, T, nruns; seed = 42)
-    # Average the mean-field ODE over the same initial conditions as stochastic runs
+function fig_norm_dynamics(res, η, ρ, T, nruns; seed = 42, ylims = nothing)
     mf_norms = zeros(nruns, T)
     for r in 1:nruns
         rng_w = MersenneTwister(seed + r)
@@ -225,6 +280,7 @@ function fig_norm_dynamics(res, η, ρ, T, nruns; seed = 42)
     p = plot(; xlabel = "Iteration", ylabel = L"\|\mathbf w\|^2",
         title  = latexstring("\\mathrm{Norm\\ dynamics,\\ } \\eta=$η,\\; \\rho=$ρ"),
         legend = :topright, size = (660, 420))
+    ylims !== nothing && ylims!(p, ylims)
     plot!(p, 1:T, r.norm_mean; ribbon = r.norm_std, color = 1,
         label = "Stochastic (mean ± std)", lw = 2, alpha = 0.4)
     plot!(p, 1:T, mf_mean; color = 2,
@@ -233,13 +289,16 @@ function fig_norm_dynamics(res, η, ρ, T, nruns; seed = 42)
     p
 end
 
-function fig_stability_map(res, ηs, ρs, nruns)
-    Z = [res[(η, ρ)].n_valid / nruns for η in ηs, ρ in ρs]
-    heatmap(string.(ρs), string.(ηs), Z;
-        xlabel = L"\rho", ylabel = L"\eta",
-        title  = L"\mathrm{Fraction\ of\ non\text{-}divergent\ runs}",
-        color = :RdYlGn, clims = (0.0, 1.0),
-        size = (620, 440), margin = 5Plots.mm)
+# Compute shared y-limits across the pairs you want linked
+function shared_ylims(res, configs; pad = 0.05)
+    lo, hi = Inf, -Inf
+    for (η, ρ) in configs
+        r = res[(η, ρ)]
+        lo = min(lo, minimum(r.norm_mean .- r.norm_std))
+        hi = max(hi, maximum(r.norm_mean .+ r.norm_std))
+    end
+    span = hi - lo
+    (lo - pad*span, hi + pad*span)
 end
 
 # ═══════════════════════════════════════════════════════════════════
@@ -287,13 +346,19 @@ function main()
     savefig(fig_convergence_vs_rho(res, 0.03,  ρs, T),
             "figures/conv_rho_eta030.pdf")
 
-    savefig(fig_norm_dynamics(res, 0.003, 0.0, T, nruns),
+    slow_pairs = [(0.003, 0.0), (0.003, 0.9)]
+    fast_pairs = [(0.03,  0.0), (0.03,  0.9)]
+
+    slow_lims = shared_ylims(res, slow_pairs)
+    fast_lims = shared_ylims(res, fast_pairs)
+
+    savefig(fig_norm_dynamics(res, 0.003, 0.0, T, nruns; ylims = slow_lims),
             "figures/norm_slow_iid.pdf")
-    savefig(fig_norm_dynamics(res, 0.003, 0.9, T, nruns),
+    savefig(fig_norm_dynamics(res, 0.003, 0.9, T, nruns; ylims = slow_lims),
             "figures/norm_slow_corr.pdf")
-    savefig(fig_norm_dynamics(res, 0.03,  0.0, T, nruns),
+    savefig(fig_norm_dynamics(res, 0.03,  0.0, T, nruns; ylims = fast_lims),
             "figures/norm_fast_iid.pdf")
-    savefig(fig_norm_dynamics(res, 0.03,  0.9, T, nruns),
+    savefig(fig_norm_dynamics(res, 0.03,  0.9, T, nruns; ylims = fast_lims),
             "figures/norm_fast_corr.pdf")
 
     println("  All figures saved to figures/\n")
