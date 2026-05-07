@@ -17,6 +17,21 @@ def _rotate_row_titles(fig, row_labels):
         if ann.text in row_labels:
             ann.update(x=-0.07, textangle=-90, xanchor='center')
 
+def _place_category_legend(fig):
+    """Place the category match/mismatch legend below the plotting area."""
+    fig.update_layout(
+        margin=dict(b=120),
+        legend=dict(
+            orientation='h',
+            title_text='',
+            yanchor='top',
+            y=-0.12,
+            xanchor='center',
+            x=0.5,
+            font=dict(size=16)
+        )
+    )
+
 def make_model_plot(models, include_human=False):
     """
     Generates plot for a list of models on the ISC distractor experiment.
@@ -35,10 +50,11 @@ def make_model_plot(models, include_human=False):
 
     if include_human:
         num_models += 1
-        model_plot_data += [('Human', *generate_human_plot_data())]
+        model_plot_data = [('Human', *generate_human_plot_data())] + model_plot_data
 
     # figure for response time
-    fig = make_subplots(rows=2,cols=num_models,row_titles=['Categorically Blocked Condition','Interleaved Condition'],
+    row_titles = ['Cue-Blocked Condition', 'Cue-Interleaved Condition']
+    fig = make_subplots(rows=2,cols=num_models,row_titles=row_titles,
                         column_titles=[name + ' Performance' for name,_,_,_,_ in model_plot_data])
 
     for i in range(len(model_plot_data)):
@@ -52,19 +68,19 @@ def make_model_plot(models, include_human=False):
             trace.showlegend = False
     fig.update_layout(title='Log Reaction Time (log ms, Relative to Mean) by Condition',yaxis_side='left',width=1200,height=800,
                     titlefont=dict(size=20))
-    fig.update_layout(plot_bgcolor='white',title_x=0.5,
-                        legend=dict(yanchor='top',y=.99,xanchor='left',x=.01,font=dict(size=16)))
+    fig.update_layout(plot_bgcolor='white',title_x=0.5)
+    _place_category_legend(fig)
     fig.update_xaxes(showline=True,linewidth=1.5,linecolor='black',tickfont=dict(size=16),
                 mirror=True,ticks='outside',showgrid=False,titlefont=dict(size=20)
                 )
     fig.update_yaxes(showline=True,linewidth=1.5,linecolor='black',
                 mirror=True,ticks='outside',showgrid=False,titlefont=dict(size=20),
                 zeroline=True,zerolinecolor='black',zerolinewidth=1)
-    _rotate_row_titles(fig, {"Categorically Blocked Condition", "Interleaved Condition"})
+    _rotate_row_titles(fig, set(row_titles))
     fig.show()
 
     # figure for error rate
-    fig = make_subplots(rows=2,cols=num_models,row_titles=['Categorically Blocked Condition','Interleaved Condition'],
+    fig = make_subplots(rows=2,cols=num_models,row_titles=row_titles,
                         column_titles=[name + ' Performance' for name,_,_,_,_ in model_plot_data])
     for i in range(len(model_plot_data)):
         fig.add_trace(model_plot_data[i][3].data[0],row=2,col=i+1)
@@ -76,15 +92,15 @@ def make_model_plot(models, include_human=False):
             trace.showlegend = False
     fig.update_layout(title='Error Rate (%, Relative to Mean) by Condition',yaxis_side='left',width=1200,height=800,
                     titlefont=dict(size=20))
-    fig.update_layout(plot_bgcolor='white',title_x=0.5,
-                        legend=dict(yanchor='top',y=.99,xanchor='left',x=.01,font=dict(size=16)))
+    fig.update_layout(plot_bgcolor='white',title_x=0.5)
+    _place_category_legend(fig)
     fig.update_xaxes(showline=True,linewidth=1.5,linecolor='black',tickfont=dict(size=16),
                 mirror=True,ticks='outside',showgrid=False,titlefont=dict(size=20)
                 )
     fig.update_yaxes(showline=True,linewidth=1.5,linecolor='black',
                 mirror=True,ticks='outside',showgrid=False,titlefont=dict(size=20),
                 zeroline=True,zerolinecolor='black',zerolinewidth=1)
-    _rotate_row_titles(fig, {"Categorically Blocked Condition", "Interleaved Condition"})
+    _rotate_row_titles(fig, set(row_titles))
 
     # save plot as png
     global experiment_number

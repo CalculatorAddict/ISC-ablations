@@ -130,7 +130,7 @@ def run_hebbian_experiment(
     simulation_models_interleaved = []
     for model_idx in range(num_models):
         simulation_model = OjaModel(device='mps',num_tasks=5,num_context_dependent_hidden_units=128,alpha_ema=alpha)
-        save_file = f'oja_base_interl-{model_idx}.torch'
+        save_file = f'oja_a{alpha:.2f}_interl-{model_idx}.torch'
 
         if save_file in os.listdir('models'):
             simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
@@ -167,7 +167,7 @@ def run_hebbian_experiment(
     simulation_models_blocked = []
     for model_idx in range(num_models):
         simulation_model = OjaModel(device='mps',num_tasks=5,num_context_dependent_hidden_units=128)
-        save_file = f'hebbian_blockd-{model_idx}.torch'
+        save_file = f'oja_a{alpha:.2f}_blockd-{model_idx}.torch'
 
         if save_file in os.listdir('models'):
             simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
