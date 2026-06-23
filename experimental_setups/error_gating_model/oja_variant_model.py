@@ -219,7 +219,7 @@ class ErrorGatingModel(nn.Module):
                 batch_idx = range(batch_start,batch_end)
 
                 self.optimizer.zero_grad()
-                output = self([x_train[0][batch_idx],x_train[1][batch_idx]],take_sigmoid=False)
+                output = self([x_train[0][batch_idx],x_train[1][batch_idx]],take_sigmoid=True)
 
                 # SGD update
                 loss = self.loss_fn(output,y_train[batch_idx])
