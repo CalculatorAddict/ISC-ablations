@@ -47,10 +47,29 @@ def calc_model_error(model,train_x,train_y,noise=0):
     errors = torch.abs(model(train_x,noise=noise)-train_y)[:,[2541,2542]].mean(axis=-1)
     return errors.cpu().detach().numpy()
 
+def _learning_curve_frame(simulation_model, model_idx: int, condition: str) -> pd.DataFrame:
+    bce_values = simulation_model.metrics[0].values
+    weight_values = simulation_model.context_input_to_cd_weight_history
+
+    if len(weight_values) != len(bce_values):
+        raise ValueError(
+            "Expected one context-input-to-CD weight snapshot per BCE value, "
+            f"got {len(weight_values)} weights and {len(bce_values)} BCE values."
+        )
+
+    return pd.DataFrame({
+        'model': model_idx,
+        'epoch': range(len(bce_values)),
+        'bce': bce_values,
+        'c1': [weights['c1'] for weights in weight_values],
+        'c2': [weights['c2'] for weights in weight_values],
+        'condition': condition,
+        'architecture': 'Hebbian',
+    })
+
 def run_error_experiment(
         num_epochs: int = 40,
         num_models: int = 10,
-        alpha: float = 0.05,
         lr_hebb: float = 10e-3,
         batch_size: int = 38,
         save_models: bool = True,
@@ -69,33 +88,32 @@ def run_error_experiment(
     train_y = train_y.to(device)
     error_data = []
     lc_data = []
+    cached_models = set(os.listdir(model_path)) if os.path.isdir(model_path) else set()
 
     simulation_models_interleaved = []
     for model_idx in range(num_models):
-        simulation_model = ErrorGatingModel(device=device,num_tasks=5,num_context_dependent_hidden_units=128)
-        interl_save_file = f'oja_a{alpha:.2f}_interl-{model_idx}.torch'
+        simulation_model = ErrorGatingModel(
+            device=device,
+            num_tasks=5,
+            num_context_dependent_hidden_units=128,
+            lr_hebb=lr_hebb,
+        )
+        interl_save_file = f'error_gating_interl-{model_idx}.torch'
 
-        if interl_save_file in os.listdir('models/alpha_grid_search'):
+        if not track_learning_curves and interl_save_file in cached_models:
             simulation_model.load_state_dict(
-                torch.load(os.path.join('models','alpha_grid_search',interl_save_file), map_location=device),
+                torch.load(os.path.join(model_path, interl_save_file), map_location=device),
                 strict=False,
             )
         else:
             simulation_model.load_old_model_weights(isc_models[model_idx].state_dict())
             simulation_model.train(train_x, train_y, epochs = num_epochs, batch_size = batch_size, is_blocked=False)
             if save_models:
-                torch.save(simulation_model.state_dict(),os.path.join('models','alpha_grid_search',interl_save_file))
+                torch.save(simulation_model.state_dict(),os.path.join(model_path, interl_save_file))
 
         simulation_models_interleaved += [simulation_model]
         if track_learning_curves:
-            bce_values = simulation_model.metrics[0].values
-            lc_data.append(pd.DataFrame({
-                'model': model_idx,
-                'epoch': range(len(bce_values)),
-                'bce': bce_values,
-                'condition': 'interleaved',
-                'architecture': 'Hebbian',
-            }))
+            lc_data.append(_learning_curve_frame(simulation_model, model_idx, 'interleaved'))
 
     for i in range(num_models):
         preds = simulation_models_interleaved[i](train_x)
@@ -105,42 +123,39 @@ def run_error_experiment(
             'acc':accs,
             'architecture':['Hebbian']*len(accs),
             'condition':['interleaved']*len(accs),
-            'alpha':[alpha]*len(accs),
             'lr_hebb':[lr_hebb]*len(accs),
         }))
 
 
     simulation_models_blocked = []
     for model_idx in range(num_models):
-        simulation_model = ErrorGatingModel(device=device,num_tasks=5,num_context_dependent_hidden_units=128)
-        blockd_save_file = f'oja_a{alpha:.2f}_blockd-{model_idx}.torch'
+        simulation_model = ErrorGatingModel(
+            device=device,
+            num_tasks=5,
+            num_context_dependent_hidden_units=128,
+            lr_hebb=lr_hebb,
+        )
+        blockd_save_file = f'error_gating_blockd-{model_idx}.torch'
 
-        if blockd_save_file in os.listdir('models/alpha_grid_search'):
+        if not track_learning_curves and blockd_save_file in cached_models:
             simulation_model.load_state_dict(
-                torch.load(os.path.join('models','alpha_grid_search',blockd_save_file), map_location=device),
+                torch.load(os.path.join(model_path, blockd_save_file), map_location=device),
                 strict=False,
             )
         else:
             simulation_model.load_old_model_weights(isc_models[model_idx].state_dict())
             simulation_model.train(train_x, train_y, epochs = num_epochs, batch_size = batch_size, is_blocked=True)
             if save_models:
-                torch.save(simulation_model.state_dict(),os.path.join('models','alpha_grid_search',blockd_save_file))
+                torch.save(simulation_model.state_dict(),os.path.join(model_path, blockd_save_file))
 
         simulation_models_blocked += [simulation_model]
         if track_learning_curves:
-            bce_values = simulation_model.metrics[0].values
-            lc_data.append(pd.DataFrame({
-                'model': model_idx,
-                'epoch': range(len(bce_values)),
-                'bce': bce_values,
-                'condition': 'blocked',
-                'architecture': 'Hebbian',
-            }))
+            lc_data.append(_learning_curve_frame(simulation_model, model_idx, 'blocked'))
 
     for i in range(num_models):
         preds = simulation_models_blocked[i](train_x)
         accs = ((preds[:,2541]>preds[:,2542])==train_y[:,2541]).float().cpu().detach().numpy()
-        error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'architecture':['Hebbian']*len(accs),'condition':['blocked']*len(accs),'alpha':[alpha]*len(accs)}))
+        error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'architecture':['Hebbian']*len(accs),'condition':['blocked']*len(accs),'lr_hebb':[lr_hebb]*len(accs)}))
 
     if track_learning_curves:
         return error_data, lc_data

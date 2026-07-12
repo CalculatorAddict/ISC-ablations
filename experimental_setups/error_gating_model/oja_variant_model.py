@@ -113,8 +113,10 @@ class ErrorGatingModel(nn.Module):
                 self.hub_to_output_weights.bias.copy_(torch.ones(self.hub_to_output_weights.bias.shape,device=device)*-2)
 
         self.loss_fn = nn.BCEWithLogitsLoss()
-        self.optimizer = optim.Adam(self.parameters(),lr=lr)
+        self._configure_trainable_parameters()
+        self.optimizer = optim.Adam(self._trainable_parameters(), lr=lr)
         self.metrics = [BCEMetric()]
+        self.context_input_to_cd_weight_history = []
         self.num_objects = num_objects
         self.num_tasks = num_tasks
         self.num_context_dependent_hidden_units = num_context_dependent_hidden_units
@@ -125,21 +127,28 @@ class ErrorGatingModel(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
-
-    def load_old_model_weights(self, state_dict: dict) -> None:
-        unfrozen_weights = [
-            # 'context_input_to_context_dependent_rep_weights.weight', 
+    def _configure_trainable_parameters(self) -> None:
+        readout_parameter_names = {
             'context_dependent_rep_to_output_weights.weight',
             'context_dependent_rep_to_output_weights.bias',
             'hub_to_output_weights.weight',
             'hub_to_output_weights.bias',
-        ]
+        }
 
+        for name, param in self.named_parameters():
+            param.requires_grad = name in readout_parameter_names
+
+    def _trainable_parameters(self) -> list[torch.nn.Parameter]:
+        return [param for param in self.parameters() if param.requires_grad]
+
+    def load_old_model_weights(self, state_dict: dict) -> None:
+        model_state = self.state_dict()
         for name, param in state_dict.items():
-            if name in self.state_dict():
-                self.state_dict()[name].copy_(param)
-                if name not in unfrozen_weights:
-                    param.requires_grad = False
+            if name in model_state:
+                model_state[name].copy_(param)
+
+        self._configure_trainable_parameters()
+        self.optimizer = optim.Adam(self._trainable_parameters(), lr=self.lr)
 
     def get_context_independent_rep(self, x: torch.Tensor) -> torch.Tensor:
         hub_rep = torch.sigmoid(self.item_input_to_hub_weights(x[0]))
@@ -208,6 +217,8 @@ class ErrorGatingModel(nn.Module):
             return [0]
         for metric in self.metrics:
             metric(self(x),y,self)
+        self.context_input_to_cd_weight_history = []
+        self._record_context_input_to_cd_weights()
 
         for epoch in range(epochs):
             self.epoch = epoch
@@ -234,6 +245,7 @@ class ErrorGatingModel(nn.Module):
 
             for metric in self.metrics:
                 metric(self(x),y,self)
+            self._record_context_input_to_cd_weights()
         return self.metrics
     
     def _train_load(self, x: torch.Tensor, y: torch.Tensor, is_blocked: bool):
@@ -304,9 +316,9 @@ class ErrorGatingModel(nn.Module):
             else:
                 lr_hebb_eff = self.lr_hebb
 
-            oja_activation = torch.t(y_task) @ (task_rep - y_task @ w_task)
-
-            dw_task = (lr_hebb_eff / task_rep.size(0)) * oja_activation
+            hebbian_term = torch.t(y_task) @ task_rep
+            oja_decay = torch.sum(y_task.pow(2), dim=0, keepdim=True).t() * w_task
+            dw_task = (lr_hebb_eff / task_rep.size(0)) * (hebbian_term - oja_decay)
             w_task.add_(dw_task)
 
         self.optimizer.zero_grad()
@@ -340,6 +352,13 @@ class ErrorGatingModel(nn.Module):
     def _context_for_batch(self, batch_size: int) -> torch.Tensor:
         return self.context.detach().expand(batch_size, 1).clone()
 
+    def _record_context_input_to_cd_weights(self) -> None:
+        weights = self.context_input_to_context_dependent_rep_weights.weight.detach().flatten()
+        self.context_input_to_cd_weight_history.append({
+            'c1': float(weights[0].cpu().item()),
+            'c2': float(weights[1].cpu().item()),
+        })
+
     def _determine_true_label(self, x):
         """
         Determine true label for input to distractor task.
@@ -367,11 +386,11 @@ class ErrorGatingModel(nn.Module):
 
         
 
-    def _update_context(self, x, output, threshold=0.5):
+    def _update_context(self, x, output):
         y_hat = (output[:, 2542] > output[:, 2541]).float()
         y_true = self._determine_true_label(x)
 
-        error_signal = (y_hat - y_true).abs().mean() >= threshold
+        error_signal = (y_hat - y_true).abs().mean()
 
         # if there was an error on the previous example, switch contexts
         if error_signal:

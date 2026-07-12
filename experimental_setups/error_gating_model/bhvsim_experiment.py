@@ -3,12 +3,11 @@ import warnings
 
 import data
 
-import numpy as np
 import pandas as pd
 import torch
 
 from ..isc_model.model import load_isc_models
-from .oja_variant_model import SimpleHebbianModel as OjaModel  # adjust import path as needed
+from .oja_variant_model import ErrorGatingModel
 
 warnings.filterwarnings('ignore')
 
@@ -16,7 +15,6 @@ warnings.filterwarnings('ignore')
 def run_oja_simulation(
     num_models: int = 10,
     num_epochs: int = 40,
-    alpha: float = np.linspace(0.05, 1.0, 30)[24],  # best α from EMA sweep
     lr_hebb: float = 1e-2,
     batch_size: int = 38,
     distractor_strength: float = 0.975,
@@ -24,7 +22,7 @@ def run_oja_simulation(
     output_csv: str = 'data/oja_simulation_data_0200.csv',
     model_path: str = 'models',
 ):
-    print(f'Running Oja simulation: {num_models} seeds, alpha={alpha:.4f}, {num_epochs} epochs')
+    print(f'Running Oja simulation: {num_models} seeds, {num_epochs} epochs')
     print('Loading ISC base models...')
     isc_models = load_isc_models(num_models)
 
@@ -34,11 +32,11 @@ def run_oja_simulation(
     )
 
     def train_or_load(model_idx, is_blocked):
-        sim = OjaModel(
+        sim = ErrorGatingModel(
             device='mps',
             num_tasks=5,
             num_context_dependent_hidden_units=128,
-            alpha_ema=alpha,
+            lr_hebb=lr_hebb,
         )
         tag = 'blocked' if is_blocked else 'interleaved'
         save_file = f'oja_{tag}-{model_idx}.torch'
@@ -67,10 +65,11 @@ def run_oja_simulation(
             sim = train_or_load(i, is_blocked)
             print(f'  [seed {i}, {tag}] evaluating...')
             preds = sim(train_x)
-            mae = torch.abs(preds - train_y)[:, [2541, 2542]].mean(axis=-1)
+            eval_y = train_y.to(preds.device)
+            mae = torch.abs(preds - eval_y)[:, [2541, 2542]].mean(axis=-1)
             mae = mae.cpu().detach().numpy()
             accs = (
-                (preds[:, 2541] > preds[:, 2542]) == train_y[:, 2541]
+                (preds[:, 2541] > preds[:, 2542]) == eval_y[:, 2541]
             ).float().cpu().detach().numpy()
 
             error_data.append(pd.DataFrame({
