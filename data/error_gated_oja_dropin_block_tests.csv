@@ -1,0 +1,9 @@
+block_type,metric,comparison,mean_difference,t,df,p_two_sided
+blocked,mae,error-gated replacement - zero context,-0.05654212788785092,-19.036154799882972,9,1.4030203557670912e-08
+blocked,mae,error-gated replacement - supplied context,0.008323352644831288,2.9939837428232026,9,0.015103005237643213
+blocked,error,error-gated replacement - zero context,-0.09184210526315789,-16.176758479993097,9,5.844631614961297e-08
+blocked,error,error-gated replacement - supplied context,0.009210526315789478,1.9414506867883032,9,0.08411328490891744
+interleaved,mae,error-gated replacement - zero context,-0.05654212788785092,-19.036154799882972,9,1.4030203557670912e-08
+interleaved,mae,error-gated replacement - supplied context,-0.05654298081248157,-19.036065974298747,9,1.4030779789001427e-08
+interleaved,error,error-gated replacement - zero context,-0.09184210526315789,-16.176758479993097,9,5.844631614961297e-08
+interleaved,error,error-gated replacement - supplied context,-0.09184210526315789,-16.176758479993097,9,5.844631614961297e-08

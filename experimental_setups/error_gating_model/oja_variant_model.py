@@ -392,8 +392,8 @@ class ErrorGatingModel(nn.Module):
 
         error_signal = (y_hat - y_true).abs().mean()
 
-        # if there was an error on the previous example, switch contexts
-        if error_signal:
+        # switch contexts with probability given by error_signal
+        if random.random() < error_signal:
             with torch.no_grad():
                 self.context[0, 0] = 1.0 - self.context[0, 0]
 

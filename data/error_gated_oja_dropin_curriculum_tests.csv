@@ -1,0 +1,9 @@
+training_condition,metric,comparison,mean_difference,t,df,p_two_sided
+blocked,mae,error-gated replacement - zero context,-0.0004703885236109678,-0.6505518257340085,9,0.5315904460706438
+blocked,mae,error-gated replacement - supplied context,0.0016018717799015868,2.1443604806997127,9,0.060590004787817224
+blocked,error,error-gated replacement - zero context,-0.0034210526315789414,-1.1648279976245213,9,0.27403348955685175
+blocked,error,error-gated replacement - supplied context,0.003157894736842104,0.9434563530497257,9,0.3700831222820682
+interleaved,mae,error-gated replacement - zero context,-0.0026865122425879682,-1.9412463598562517,9,0.08414087052808507
+interleaved,mae,error-gated replacement - supplied context,0.006983994986195186,7.039718529361258,9,6.0539616303993466e-05
+interleaved,error,error-gated replacement - zero context,-0.006315789473684208,-2.0251582216668407,9,0.07350713411673644
+interleaved,error,error-gated replacement - supplied context,0.012105263157894735,4.8074577986121625,9,0.0009636544129761517

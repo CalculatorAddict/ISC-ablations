@@ -1,0 +1,5 @@
+metric,comparison,mean_difference,t,df,p_two_sided
+mae,error-gated replacement - zero context,-0.0565421278878509,-19.036154799882947,9,1.4030203557671061e-08
+mae,error-gated replacement - supplied context,-0.034919601594959285,-12.882647689277308,9,4.197249741268017e-07
+error,error-gated replacement - zero context,-0.09184210526315789,-16.176758479993097,9,5.844631614961297e-08
+error,error-gated replacement - supplied context,-0.05815789473684211,-11.47947973914511,9,1.122382330213397e-06
