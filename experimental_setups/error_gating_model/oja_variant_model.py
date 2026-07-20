@@ -86,13 +86,20 @@ class ErrorGatingModel(nn.Module):
         self.lr = lr
         self.lr_hebb = lr_hebb # learning rate for Hebbian weight updates
         self.has_hebbian_weight_updates = has_hebbian_weight_updates
+
+        # Match the task-context representation used by SimpleHebbianModel so
+        # its context-to-hidden weights can be loaded directly.
+        initial_context = torch.zeros((1, num_tasks), dtype=torch.float, device=device)
+        initial_context[0, 0] = 0.5
+        if num_tasks > 1:
+            initial_context[0, 1] = -0.5
         self.register_buffer(
             "context",
-            torch.tensor([[float(init_context)]], dtype=torch.float, device=device),
+            initial_context,
         )
 
         self.item_input_to_hub_weights = nn.Linear(num_objects,num_hub_hidden_units,device=device,bias=biases)
-        self.context_input_to_context_dependent_rep_weights = nn.Linear(1,num_context_dependent_hidden_units,device=device,bias=False)
+        self.context_input_to_context_dependent_rep_weights = nn.Linear(num_tasks,num_context_dependent_hidden_units,device=device,bias=False)
         self.hub_to_context_dependent_rep_weights = nn.Linear(num_hub_hidden_units,num_context_dependent_hidden_units,device=device,bias=biases)
         self.context_dependent_rep_to_output_weights = nn.Linear(num_context_dependent_hidden_units,num_output,device=device,bias=biases)
         self.hub_to_output_weights = nn.Linear(num_hub_hidden_units,num_output,device=device)
@@ -128,7 +135,7 @@ class ErrorGatingModel(nn.Module):
 
     def load_old_model_weights(self, state_dict: dict) -> None:
         unfrozen_weights = [
-            # 'context_input_to_context_dependent_rep_weights.weight', 
+            'context_input_to_context_dependent_rep_weights.weight',
             'context_dependent_rep_to_output_weights.weight',
             'context_dependent_rep_to_output_weights.bias',
             'hub_to_output_weights.weight',
@@ -170,71 +177,6 @@ class ErrorGatingModel(nn.Module):
         self._update_context(x, output.detach())
 
         return output
-
-
-    # def train(self, x: torch.Tensor, y: torch.Tensor, epochs: int = 1, batch_size: int = 1) -> list:
-    #     if epochs < 1:
-    #         return [0]
-    #     for metric in self.metrics:
-    #         metric(self(x),y,self)
-    #     for epoch in range(epochs):
-    #         n_steps = 0
-    #         batch_idxs = np.random.permutation(range(len(y)))
-    #         for batch_start in range(0,len(y),batch_size):
-    #             batch_idx = batch_idxs[batch_start:min(batch_start+batch_size,len(y))]
-    #             self.optimizer.zero_grad()
-    #             output = self([x[0][batch_idx],x[1][batch_idx]],take_sigmoid=False)
-    #             loss = self.loss_fn(output,y[batch_idx])
-    #             loss.backward()
-    #             self.optimizer.step()
-    #             n_steps += 1
-
-    #             if self.has_hebbian_weight_updates:
-    #                 # Hebbian update with Oja's rule
-    #                 self._oja_update([x[0][batch_idx],x[1][batch_idx]],normalize_update = True if batch_size > 1 else False)
-    #                 if batch_size != 1:
-    #                     raise ValueError("Oja update requires online updating after each iteration!")
-
-
-    #         for metric in self.metrics:
-    #             metric(self(x),y,self)
-    #     return self.metrics
-    
-
-    def train(self, x: torch.Tensor, y: torch.Tensor, epochs: int = 1, batch_size: int = 64, is_blocked: bool = False) -> list:
-        x = [t.to(self.device) for t in x]
-        y = y.to(self.device)
-        if epochs < 1:
-            return [0]
-        for metric in self.metrics:
-            metric(self(x),y,self)
-
-        for epoch in range(epochs):
-            self.epoch = epoch
-            n_steps = 0
-            x_train, y_train, = self._train_load(x, y, is_blocked)
-
-            for batch_start in range(0,len(y),batch_size):
-                batch_end = min(batch_start + batch_size, len(y))
-                batch_idx = range(batch_start,batch_end)
-
-                self.optimizer.zero_grad()
-                output = self([x_train[0][batch_idx],x_train[1][batch_idx]],take_sigmoid=False)
-
-                # SGD update
-                loss = self.loss_fn(output,y_train[batch_idx])
-                loss.backward()
-                self.optimizer.step()
-
-                if self.has_hebbian_weight_updates:
-                    # Hebbian update with Oja's rule
-                    self._oja_update([x_train[0][batch_idx],x_train[1][batch_idx]],normalize_update = True if batch_size > 1 else False)
-
-                n_steps += 1
-
-            for metric in self.metrics:
-                metric(self(x),y,self)
-        return self.metrics
     
     def _train_load(self, x: torch.Tensor, y: torch.Tensor, is_blocked: bool):
         train_data = [x[0], x[1], y]
@@ -271,74 +213,9 @@ class ErrorGatingModel(nn.Module):
 
         return x_train, y_train
     
-
-    def _oja_update(self, x, normalize_update: bool = False):
-        """
-        Apply Oja's update rule to the model's task representation to CD weights on input x.
-
-        Parameters:
-        - x (torch.Tensor): the input batch
-        - normalize_update (bool): whether to apply spectral normalization to the update matrix
-        """
-        # w_item = self.hub_to_context_dependent_rep_weights.weight
-        # w_task = self.context_input_to_task_context_rep_weights.weight
-
-        # y_item = self.item_input_to_hub_weights(x[0])
-        # y_task = self.context_input_to_task_context_rep_weights(x[1])
-
-        w_task = self.context_input_to_context_dependent_rep_weights.weight
-
-        task_rep = self._context_for_batch(x[0].size(0))
-        y_task = self.context_input_to_context_dependent_rep_weights(task_rep)
-
-        with torch.no_grad():
-            # dw_item = (self.lr_hebb / x[0].size(0)) * torch.t(y_item) @ (x[0] - y_item @ w_item)
-            # dw_task = (self.lr_hebb / x[1].size(0)) * torch.t(y_task) @ (x[1] - y_task @ w_task)
-
-            # w_item.add_(dw_item)
-            # w_task.add_(dw_task)
-            if normalize_update:
-                s = self._spectral_norm_power(y_task, n_iter=5)  # largest singular value
-                lambda_max = (s * s) / y_task.size(0)            # batch size adjusted eigenvalue
-                lr_hebb_eff = self.lr_hebb / (lambda_max + 1e-8) # norm-adjusted lr
-            else:
-                lr_hebb_eff = self.lr_hebb
-
-            oja_activation = torch.t(y_task) @ (task_rep - y_task @ w_task)
-
-            dw_task = (lr_hebb_eff / task_rep.size(0)) * oja_activation
-            w_task.add_(dw_task)
-
-        self.optimizer.zero_grad()
-
-        # print("task_rep", task_rep.shape, "y_task", y_task.shape, "w_task", w_task.shape)
-
-
-        if (torch.isnan(w_task.norm())):
-            print(
-                f"step={self.epoch} | "
-                f"||w||={w_task.norm().item():.4e} | "
-                f"||x||={task_rep.norm().item():.4e} | "
-                f"y_max={y_task.abs().max().item():.4e} | "
-                f"Δw_norm={dw_task.norm().item():.4e} | "
-            )
-
-            raise ValueError("w_task is nan")
-
-    def _spectral_norm_power(self, Y, n_iter=5, eps=1e-8):
-        # Y: (B, H) or (B, D) tensor
-        v = torch.randn(Y.size(1), device=Y.device, dtype=Y.dtype)
-        v = v / (v.norm() + eps)
-
-        for _ in range(n_iter):
-            v = Y.T @ (Y @ v)          # power iter on (Y^T Y)
-            v = v / (v.norm() + eps)
-
-        s = (Y @ v).norm()             # largest singular value of Y
-        return s
     
     def _context_for_batch(self, batch_size: int) -> torch.Tensor:
-        return self.context.detach().expand(batch_size, 1).clone()
+        return self.context.detach().expand(batch_size, -1).clone()
 
     def _determine_true_label(self, x):
         """
@@ -371,12 +248,12 @@ class ErrorGatingModel(nn.Module):
         y_hat = (output[:, 2542] > output[:, 2541]).float()
         y_true = self._determine_true_label(x)
 
-        error_signal = (y_hat - y_true).abs().mean() >= threshold
+        error_signal = (y_hat - y_true).abs().mean()
 
-        # if there was an error on the previous example, switch contexts
-        if error_signal:
-            with torch.no_grad():
-                self.context[0, 0] = 1.0 - self.context[0, 0]
+        # error signal gives probability of switching contexts
+        if random.random() <= error_signal:
+            self.context[0, 0] = 1.0 - self.context[0, 0]
+            self.context[0, 1] = 1.0 - self.context[0, 1]
 
     def plot_metrics(self) -> None:
         for metric in self.metrics:

@@ -166,7 +166,12 @@ def run_hebbian_experiment(
 
     simulation_models_blocked = []
     for model_idx in range(num_models):
-        simulation_model = OjaModel(device='mps',num_tasks=5,num_context_dependent_hidden_units=128)
+        simulation_model = OjaModel(
+            device='mps',
+            num_tasks=5,
+            num_context_dependent_hidden_units=128,
+            alpha_ema=alpha,
+        )
         save_file = f'oja_a{alpha:.2f}_blockd-{model_idx}.torch'
 
         if save_file in os.listdir('models'):
@@ -174,7 +179,8 @@ def run_hebbian_experiment(
         else:
             simulation_model.load_old_model_weights(isc_models[model_idx].state_dict())
             simulation_model.train(train_x, train_y, epochs = num_epochs, batch_size = batch_size, is_blocked=True)
-            # torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+            if save_models:
+                torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
 
         simulation_models_blocked += [simulation_model]
         if track_learning_curves:
@@ -258,4 +264,3 @@ if __name__=='__main__':
 
     error_data = pd.concat(error_data,axis=0)
     error_data.to_csv(f'data/hebbian_simulation_n{num_epochs}.csv')
-
