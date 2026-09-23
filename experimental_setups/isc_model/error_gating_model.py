@@ -261,5 +261,4 @@ class ErrorGatingISCModel(nn.Module):
 
         # error signal gives probability of switching contexts
         if random.random() <= error_signal:
-            self.context[0, 0] = 1.0 - self.context[0, 0]
-            self.context[0, 1] = 1.0 - self.context[0, 1]
+            self.context[0, :2] = self.context[0, :2].mul_(-1.)

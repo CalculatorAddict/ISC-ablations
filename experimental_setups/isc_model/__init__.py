@@ -1,5 +1,7 @@
 from .learning_curves import plot_learning_curves, train_models_and_collect_learning_curves
 from .model import ISCModel, load_comparison_models, load_isc_models
+from .error_gating_model import ErrorGatingISCModel
+from .threshold_model import ThresholdEGISCModel
 
 __all__ = [
     "ISCModel",
@@ -7,4 +9,6 @@ __all__ = [
     "load_comparison_models",
     "train_models_and_collect_learning_curves",
     "plot_learning_curves",
+    "ErrorGatingISCModel",
+    "ThresholdEGISCModel",
 ]
