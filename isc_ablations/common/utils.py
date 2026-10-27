@@ -1,3 +1,6 @@
+"""Torch device selection (set_torch_device), shared by every model.
+"""
+
 import torch
 
 

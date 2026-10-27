@@ -1,10 +1,18 @@
+"""Cue-task evaluation of ISC models finetuned on a temporally blocked vs interleaved curriculum.
+
+Writes data/01_ablations/isc_temporal_data_0200.csv; checkpoints models/01_ablations/isc_model-{blocked,interleaved}.torch.
+
+Run from the repo root; the script runs on import (no __main__ guard):
+    python -m isc_ablations.isc_model.temporal_block_experiment
+Used by: experiments/01_ablations/cue_blocking_ablations.ipynb (section 5).
+"""
+
 import os
 import warnings
 
 from isc_ablations.common import data
 import pandas as pd
 import torch
-from scipy.stats import ttest_rel
 
 from . import model
 

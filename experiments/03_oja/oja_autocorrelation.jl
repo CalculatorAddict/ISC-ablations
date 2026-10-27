@@ -15,6 +15,9 @@
   maps out the (η, ρ) plane and compares stochastic trajectories
   against the deterministic mean-field ODE and its logistic reduction.
 
+  Dissertation: Fig 4.1 (phase_diagram + fluctuation_map), Fig 4.2 (norm_slow_iid, norm_slow_corr),
+                Fig 4.3 (stability_map); outputs in figures/03_oja/autocorrelation/
+
   Usage (from the repo root):  julia experiments/03_oja/oja_autocorrelation.jl
   Deps:   using Pkg; Pkg.add(["Plots", "LaTeXStrings", "Printf"])
 =#

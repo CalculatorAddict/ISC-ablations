@@ -1,3 +1,7 @@
+"""The ISC (integrated semantics and control) network of Giallanza et al. (2024), plus loaders for the
+pretrained base models in models/pretrained/ (load_isc_models; retrains any that are missing).
+"""
+
 from isc_ablations.common import data
 import numpy as np
 import plotly.express as px

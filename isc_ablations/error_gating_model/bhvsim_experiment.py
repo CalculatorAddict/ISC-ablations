@@ -1,3 +1,8 @@
+"""run_oja_simulation: cue-blocking (distractor) simulation for the Oja model, kept for the error-gating
+work but not called anywhere yet. Defaults: checkpoints models/05_error_gating/, output
+data/05_error_gating/oja_error_gating_simulation_data_0200.csv.
+"""
+
 import os
 import warnings
 

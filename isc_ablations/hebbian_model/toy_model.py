@@ -1,16 +1,12 @@
-import pandas as pd
-from sklearn.decomposition import PCA
-from sklearn.discriminant_analysis import StandardScaler
+"""Minimal Oja's-rule models for checking convergence to the first principal component
+(experiments/03_oja/oja_verification.ipynb, dissertation Exp 3.2.1): OjaOneHotModel (one-hot task
+input), OjaEmbedModel (with an embedding layer) and OjaDecayModel.
+"""
 
-from isc_ablations.common import data
-import numpy as np
-import plotly.express as px
+import pandas as pd
+
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from isc_ablations.common import utils
-import sys
-from ..isc_model.model import BCEMetric
 
 class OjaOneHotModel(nn.Module):
     def __init__(self, lr: float = 10e-3):

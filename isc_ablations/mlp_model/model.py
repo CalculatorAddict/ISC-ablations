@@ -1,4 +1,6 @@
-from isc_ablations.common import data
+"""Two-layer fully-connected MLP baseline (no pretraining) for the cue-blocking ablations.
+"""
+
 import numpy as np
 import plotly.express as px
 import torch

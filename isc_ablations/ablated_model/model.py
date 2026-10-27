@@ -1,4 +1,6 @@
-from isc_ablations.common import data
+"""Fully-connected MLP with the category context input ablated, for the cue-blocking ablations.
+"""
+
 import numpy as np
 import plotly.express as px
 import torch

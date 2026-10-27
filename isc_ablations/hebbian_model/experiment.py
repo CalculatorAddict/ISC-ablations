@@ -1,10 +1,19 @@
-import os, sys
+"""Experiment functions for the Hebbian model (safe to import, nothing runs on import):
+- prepare_experiment_data: the two-category distractor data in blocked order
+- run_hebbian_experiment: blocked vs interleaved accuracy for one sluggishness alpha;
+  checkpoints cached in models/04_sluggishness/
+- run_hebbian_baseline: the same for the plain ISC model; cache models/01_ablations/
+
+Used by experiments/03_oja/oja_verification.ipynb, 04_sluggishness/hebbian_sluggishness.ipynb and
+05_error_gating/error_gating.ipynb.
+"""
+
+import os
 import warnings
 
 import random
 import pandas as pd
 import torch
-from scipy.stats import ttest_rel
 
 from isc_ablations.common import data
 from .. import isc_model

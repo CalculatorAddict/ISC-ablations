@@ -1,3 +1,12 @@
+"""Cue-blocking simulation (ISC Experiment 3) for the sluggish Hebbian model at alpha ~ 0.87 (dissertation Exp 5.3.1).
+
+Writes data/04_sluggishness/oja_simulation_data_0200.csv; checkpoints models/04_sluggishness/oja_model-N.torch.
+
+Run from the repo root; the script runs on import (no __main__ guard):
+    python -m isc_ablations.hebbian_model.bhvsim_experiment
+Used by: experiments/04_sluggishness/hebbian_sluggishness.ipynb (Fig 5.2).
+"""
+
 import os
 import warnings
 

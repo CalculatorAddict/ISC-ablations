@@ -1,3 +1,5 @@
+"""ISC model (Giallanza et al. 2024), its pretrained-model loaders, and ISC-based experiment scripts."""
+
 from .model import ISCModel, load_comparison_models, load_isc_models
 from .error_gating_model import ErrorGatingISCModel
 from .threshold_model import ThresholdEGISCModel

@@ -1,3 +1,10 @@
+"""Data loading for the ISC experiments: the Leuven concepts dataset (data/inputs/), the word-picture
+distractor training data (make_behavioral_experiment_training_data) and the human behavioural data
+used in the cue-blocking plots.
+
+All paths are relative to the repo root.
+"""
+
 import numpy as np
 import pandas as pd
 import pickle
@@ -5,7 +12,6 @@ import plotly.express as px
 from scipy.stats import t
 import torch
 from isc_ablations.common.utils import set_torch_device
-import sys
 
 """ Data loading and processing functions for the Leuven dataset."""
 
@@ -38,6 +44,7 @@ def make_training_data(num_objects: int = 350, num_outputs: int = 2541+2+3+350,
 
 def load_feature_reps() -> list:
     """ Load feature representations for the Leuven dataset. """
+    # NB: object_features_in_context.pkl is not in the repo and nothing calls this function.
     return pickle.load(open('data/inputs/object_features_in_context.pkl','rb'))
 
 

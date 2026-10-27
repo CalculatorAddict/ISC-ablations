@@ -5,6 +5,9 @@
 
   Sweeps (λ₁, λ₂) with fixed η and ρ, plotting stability maps.
   Cells where λ₂ > λ₁ are masked (not a valid covariance spectrum).
+
+  Dissertation: Fig 4.4 (stability_eigenvals); outputs in figures/03_oja/eigenvalues/
+  Usage (from the repo root):  julia experiments/03_oja/oja_eigenvalues.jl
 =#
 
 using LinearAlgebra, Statistics, Random, Printf

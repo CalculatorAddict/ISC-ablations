@@ -1,4 +1,9 @@
-"""Measure angles between mean Oja CD-layer category representations."""
+"""Measure angles between mean Oja CD-layer category representations.
+
+Diagnostic for the alpha = 0.87 Oja models in models/04_sluggishness/; not used by any notebook.
+Run from the repo root:
+    python -m isc_ablations.hebbian_model.measure_cd_angle
+"""
 
 from pathlib import Path
 import sys

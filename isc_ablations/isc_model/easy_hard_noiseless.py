@@ -1,14 +1,20 @@
 '''
 Easy-to-hard generalization replication study with 10 separate models trained for each curriculum type.
+
+Noiseless variant of easy_hard_generalization. Writes data/02_easy_hard/easyhard_noiseless_n{num_models}.csv;
+checkpoints models/02_easy_hard/ (not in git, created on first run).
+
+Run from the repo root; the script runs on import (no __main__ guard):
+    python -m isc_ablations.isc_model.easy_hard_noiseless
+Used by: experiments/02_easy_hard/easy_hard_curriculum.ipynb.
 '''
 
-import os, sys
+import os
 import warnings
 
 from isc_ablations.common import data
 import pandas as pd
 import torch
-from scipy.stats import ttest_rel
 
 from . import model
 

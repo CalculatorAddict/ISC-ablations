@@ -1,8 +1,8 @@
-import pandas as pd
-from sklearn.decomposition import PCA
-from sklearn.discriminant_analysis import StandardScaler
+"""ISC network with error gating: the task context is inferred from the output error instead of being
+given as a cue. Used by experiments/05_error_gating/error_gating.ipynb.
+"""
 
-from isc_ablations.common import data
+
 import numpy as np
 import random
 import plotly.express as px
@@ -10,7 +10,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from isc_ablations.common import utils
-import sys
 from .model import BCEMetric
 
 class ErrorGatingISCModel(nn.Module):

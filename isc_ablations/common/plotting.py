@@ -1,12 +1,15 @@
+"""Cue-blocking bar plots: relative error rate per condition (size x category match) for one or more
+models, optionally next to the human data. Used for dissertation Figs 2.3 and 5.2
+(experiments/01_ablations/cue_blocking_ablations.ipynb, experiments/04_sluggishness/hebbian_sluggishness.ipynb).
+"""
+
 import os
 
 from isc_ablations.common import data
 import numpy as np
 import pandas as pd
-import sys
 
 from plotly.subplots import make_subplots
-import plotly.graph_objects as go
 import plotly.express as px
 
 pd.options.mode.copy_on_write = True # prevent SettingWithCopy warnings
@@ -217,9 +220,9 @@ if __name__=='__main__':
 
     models = [
             ('ISC Model', 'data/01_ablations/isc_simulation_data_0200.csv'),
-            # ('MLP Model', 'data/mlp_simulation_data_0200.csv'),
-            # ('MLP (Batch size 1)', 'data/batch1_simulation_data_0200.csv'),
-            # ('MLP (No context)', 'data/ablated_simulation_data_0200.csv'),
+            # ('MLP Model', 'data/01_ablations/mlp_simulation_data_0200.csv'),
+            # ('MLP (Batch size 1)', 'data/01_ablations/batch1_simulation_data_0200.csv'),
+            # ('MLP (No context)', 'data/01_ablations/ablated_simulation_data_0200.csv'),
             ('ISC (Temporal)', 'data/01_ablations/isc_temporal_data_0200.csv')
         ]
 

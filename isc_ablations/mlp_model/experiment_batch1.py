@@ -1,10 +1,20 @@
-import os, sys
+"""Cue-blocking simulation for the MLP with batch size 1.
+
+Writes data/01_ablations/batch1_simulation_data_0200.csv; checkpoint models/01_ablations/batch1-bhvsim.torch.
+BROKEN: imports `..mlp_model_batch1`, which never existed in git, so this can't run. Kept as the record
+of how batch1_simulation_data_0200.csv was produced (Dec 2025).
+
+Run from the repo root; the script runs on import (no __main__ guard):
+    python -m isc_ablations.mlp_model.experiment_batch1
+Used by: experiments/01_ablations/cue_blocking_ablations.ipynb (section 3).
+"""
+
+import os
 import warnings
 
 from isc_ablations.common import data
 import pandas as pd
 import torch
-from scipy.stats import ttest_rel
 
 from ..mlp_model_batch1 import model
 

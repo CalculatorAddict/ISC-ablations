@@ -1,10 +1,18 @@
+"""Cue-blocking simulation (ISC Experiment 3 replication) for the finetuned ISC model.
+
+Writes data/01_ablations/isc_simulation_data_0200.csv; checkpoints models/01_ablations/isc_model-N-bhvsim.torch.
+
+Run from the repo root; the script runs on import (no __main__ guard):
+    python -m isc_ablations.isc_model.experiment
+Used by: experiments/01_ablations/cue_blocking_ablations.ipynb (Fig 2.3).
+"""
+
 import os
 import warnings
 
 from isc_ablations.common import data
 import pandas as pd
 import torch
-from scipy.stats import ttest_rel
 
 from . import model
 

@@ -1,10 +1,18 @@
-import os, sys
+"""Cue-blocking simulation for the two-layer MLP baseline.
+
+Writes data/01_ablations/mlp_simulation_data_0200.csv; checkpoint models/01_ablations/mlp_model-0-bhvsim.torch.
+
+Run from the repo root; the script runs on import (no __main__ guard):
+    python -m isc_ablations.mlp_model.experiment
+Used by: experiments/01_ablations/cue_blocking_ablations.ipynb (Fig 2.3).
+"""
+
+import os
 import warnings
 
 from isc_ablations.common import data
 import pandas as pd
 import torch
-from scipy.stats import ttest_rel
 
 from . import model
 

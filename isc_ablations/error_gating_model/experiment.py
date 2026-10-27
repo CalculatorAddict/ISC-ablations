@@ -1,10 +1,17 @@
-import os, sys
+"""Experiment functions for the error-gated Oja model (safe to import):
+- run_error_experiment: blocked vs interleaved accuracy; checkpoints cached in
+  models/05_error_gating/alpha_grid_search/ (NB: not in git; create it before running)
+- run_error_baseline: ISC baseline; cache models/01_ablations/ (shared with run_hebbian_baseline)
+
+Used by experiments/05_error_gating/error_gating.ipynb.
+"""
+
+import os
 import warnings
 
 import random
 import pandas as pd
 import torch
-from scipy.stats import ttest_rel
 
 from isc_ablations.common import data
 from isc_ablations.common import utils

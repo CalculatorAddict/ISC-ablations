@@ -1,10 +1,18 @@
+"""Easy-to-hard curriculum study (with input noise): non-sequential, interleaved and blocked curricula.
+
+Writes data/02_easy_hard/easyhard_curriculum_data.csv; checkpoints models/02_easy_hard/ (not in git, created on first run).
+
+Run from the repo root; the script runs on import (no __main__ guard):
+    python -m isc_ablations.isc_model.easy_hard_generalization
+Used by: experiments/02_easy_hard/easy_hard_curriculum.ipynb.
+"""
+
 import os
 import warnings
 
 from isc_ablations.common import data
 import pandas as pd
 import torch
-from scipy.stats import ttest_rel
 
 from . import model
 
