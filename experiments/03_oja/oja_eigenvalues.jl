@@ -190,11 +190,11 @@ function main()
     res = run_eigenvalue_grid(λ1s, λ2s, η, ρ, T, nruns)
     @printf("  Simulation time: %.1fs\n\n", time() - t0)
 
-    mkpath("figures/oja-eigenvals")
+    mkpath("figures/03_oja/eigenvalues")
     savefig(fig_stability_grid(res, λ1s, λ2s, nruns, η, ρ),
-            "figures/oja-eigenvals/stability_eigenvals.pdf")
+            "figures/03_oja/eigenvalues/stability_eigenvals.pdf")
     savefig(fig_alignment_grid(res, λ1s, λ2s, η, ρ),
-            "figures/oja-eigenvals/alignment_eigenvals.pdf")
+            "figures/03_oja/eigenvalues/alignment_eigenvals.pdf")
 
     @printf("\n  %-6s  %-6s  %8s  %8s  %7s\n",
             "lam1", "lam2", "<align>", "std", "valid")
@@ -212,7 +212,7 @@ function main()
         end
     end
 
-    println("\n  All figures saved to figures/")
+    println("\n  All figures saved to figures/03_oja/eigenvalues/")
 end
 
 main()

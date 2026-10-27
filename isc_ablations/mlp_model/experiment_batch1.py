@@ -1,7 +1,7 @@
 import os, sys
 import warnings
 
-import data
+from isc_ablations.common import data
 import pandas as pd
 import torch
 from scipy.stats import ttest_rel
@@ -10,7 +10,7 @@ from ..mlp_model_batch1 import model
 
 warnings.filterwarnings('ignore')
 
-model_path = 'models'
+model_path = 'models/01_ablations'
 num_models = 10
 num_bootstrap_sims = 10000
 num_training_epochs = 30
@@ -45,7 +45,7 @@ for model_idx in range(1):
         errors = calc_model_error(simulation_model,train_x,train_y)
         c+=1
     print(model_idx, errors.mean(),c)
-    torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+    torch.save(simulation_model.state_dict(),os.path.join(model_path,save_file))
 
 for i in range(71):
     errors = calc_model_error(simulation_model,train_x,train_y,noise=1.2)
@@ -55,4 +55,4 @@ for i in range(71):
                                     'size_condition':size_conditions,'cat_condition':cat_conditions,
                                     'rand_condition':random_cat_conditions,'block_type':blocks}))
 error_data = pd.concat(error_data,axis=0)
-error_data.to_csv(f'data/batch1_simulation_data_0200.csv')
+error_data.to_csv(f'data/01_ablations/batch1_simulation_data_0200.csv')

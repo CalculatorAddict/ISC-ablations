@@ -1,10 +1,10 @@
-import data
+from isc_ablations.common import data
 import numpy as np
 import plotly.express as px
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import utils
+from isc_ablations.common import utils
 
 
 class BCEMetric:
@@ -255,7 +255,7 @@ class ISCModel(nn.Module):
 
 
 def load_isc_models(num_models: int, retrain_models: bool = False,
-                    num_training_epochs: int = 30, model_path: str = 'models',
+                    num_training_epochs: int = 30, model_path: str = 'models/pretrained',
                     device = utils.set_torch_device()) -> list[ISCModel]:
     """
     Load ISC models from saved weights. Optionally retrains models if specified.
@@ -291,7 +291,7 @@ def load_isc_models(num_models: int, retrain_models: bool = False,
 
 
 def load_comparison_models(num_models: int, retrain_models: bool = False,
-                           num_training_epochs: int = 30, model_path: str = 'models',
+                           num_training_epochs: int = 30, model_path: str = 'models/pretrained',
                            device = utils.set_torch_device()) -> list[ISCModel]:
     """
     Load comparison models (trained without size correlations) from saved weights. Optionally retrains models if specified.

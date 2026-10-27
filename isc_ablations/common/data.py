@@ -4,7 +4,7 @@ import pickle
 import plotly.express as px
 from scipy.stats import t
 import torch
-from utils import set_torch_device
+from isc_ablations.common.utils import set_torch_device
 import sys
 
 """ Data loading and processing functions for the Leuven dataset."""
@@ -31,14 +31,14 @@ def make_training_data(num_objects: int = 350, num_outputs: int = 2541+2+3+350,
         List of training data tensors. Shape [(train_in, train_context), train_out]
     """
     leuven_data = load_leuven()
-    object_names = pd.read_csv('data/leuven_size.csv').name.values
+    object_names = pd.read_csv('data/inputs/leuven_size.csv').name.values
     in_, out_, context_ = make_input(leuven_data, object_names, num_objects, num_outputs, num_tasks, device=device)
     return [in_,context_], out_
 
 
 def load_feature_reps() -> list:
     """ Load feature representations for the Leuven dataset. """
-    return pickle.load(open('data/object_features_in_context.pkl','rb'))
+    return pickle.load(open('data/inputs/object_features_in_context.pkl','rb'))
 
 
 def get_raw_feature_values() -> np.array:
@@ -51,7 +51,7 @@ def get_raw_feature_values() -> np.array:
         Array of raw feature values. Shape [num_contexts, num_objects, num_features]
     """
     leuven_data = load_leuven()
-    object_names = pd.read_csv('data/leuven_size.csv').name.values
+    object_names = pd.read_csv('data/inputs/leuven_size.csv').name.values
     in_, out_, context_ = make_input(leuven_data, object_names)
     in_, out_, context_ = in_.cpu().detach().numpy(), out_.cpu().detach().numpy(), context_.cpu().detach().numpy()
     dense_reps = np.zeros((context_.shape[1],in_.shape[1],out_.shape[1]))
@@ -77,7 +77,7 @@ def get_item_indices_by_category(category_list: str | list) -> np.array:
     """
     if type(category_list) is str:
         category_list = [category_list]
-    objects = pd.read_csv('data/leuven_size.csv')[['name','category','size_for_animal_instrument_dataset']]
+    objects = pd.read_csv('data/inputs/leuven_size.csv')[['name','category','size_for_animal_instrument_dataset']]
     object_idxs = objects[objects.category.isin(category_list)].index.values
     return object_idxs
 
@@ -104,7 +104,7 @@ def get_item_indices_by_category_and_size(category_list: str | list, size: str |
         size_idx = 0 if size=='small' else 1
     else:
         size_idx = size
-    objects = pd.read_csv('data/leuven_size.csv')[['name','category','size_for_animal_instrument_dataset']]
+    objects = pd.read_csv('data/inputs/leuven_size.csv')[['name','category','size_for_animal_instrument_dataset']]
     object_idxs = objects[objects.category.isin(category_list)&(objects.size_for_animal_instrument_dataset==size_idx)].index.values
     return object_idxs
 
@@ -114,7 +114,7 @@ def get_item_indices_by_category_and_size(category_list: str | list, size: str |
 def load_leuven() -> dict:
     """ Load the Leuven dataset. """
     patterns = {}
-    leuven_size_labels = pd.read_csv('data/leuven_size.csv')
+    leuven_size_labels = pd.read_csv('data/inputs/leuven_size.csv')
     leuven_size_labels = leuven_size_labels[leuven_size_labels.name!='viger']
     object_list = list(leuven_size_labels.name.values)
     category_list = sorted(list(set(leuven_size_labels.category.values)))
@@ -133,7 +133,7 @@ def load_leuven() -> dict:
                     'insect':'other',
                     'bird':'animal',
                     'kitchen':'other'}
-    with open('data/leuven_rum_nozeroes.ex') as f:
+    with open('data/inputs/leuven_rum_nozeroes.ex') as f:
         idx = 0
         for line in f:
             obj,out_context = line.split()[1].split('C')
@@ -187,7 +187,7 @@ def load_leuven() -> dict:
 
 
 def load_object_data():
-    object_data = pd.read_csv('data/leuven_size.csv')
+    object_data = pd.read_csv('data/inputs/leuven_size.csv')
     object_data['size'] = object_data.size_for_animal_instrument_dataset*4+1
     object_data['category'] = object_data.category.replace(['bird','fish','mammal','reptile'],'animal')
     return object_data
@@ -197,7 +197,7 @@ def load_object_data():
 def load_behavioral_data():
     get_size_condition = lambda x: x[:4]
     get_cat_condition = lambda x: x[5:]
-    behavioral_data = pd.read_csv('data/replication_data.csv')
+    behavioral_data = pd.read_csv('data/inputs/replication_data.csv')
     block_type_map = {'animal':'blocked','instrument':'blocked','interleaved':'interleaved','random1':'random'}
     blacklist = ['1457-2882-5959_replication', '4845-6126-5921_replication',
         '4989-6963-1797_replication', '5190-817-5024_replication',
@@ -288,14 +288,14 @@ def make_input_comparison(leuven_data, object_names, n_in=350, n_out=2541+2+3+35
 
 def make_training_data_comparison(num_objects=700,num_outputs=2541+2+3+350,num_tasks=36,device=None):
     leuven_data = load_leuven()
-    object_names = pd.read_csv('data/leuven_size.csv').name.values
+    object_names = pd.read_csv('data/inputs/leuven_size.csv').name.values
     in_, out_, context_ = make_input_comparison(leuven_data, object_names, num_objects, num_outputs, num_tasks, device=device)
     return [in_,context_], out_
 
 
 
 def make_full_distractor_training_data():
-    obj_data = pd.read_csv('data/leuven_size.csv')
+    obj_data = pd.read_csv('data/inputs/leuven_size.csv')
     names, sizes, categories = obj_data.name.values, obj_data.size_for_animal_instrument_dataset.values, obj_data.category.values
     experiment_stimulus_indices = get_item_indices_by_category(['instrument','mammal','bird','fish','reptile'])
     names, sizes, categories = names[experiment_stimulus_indices], sizes[experiment_stimulus_indices], categories[experiment_stimulus_indices]
@@ -333,7 +333,7 @@ def make_behavioral_experiment_training_data(distractor_strength=.975,target_str
     262,253,266,267,260]
     random_contexts = [1,0,1,0,0,0,1,1,0,1,1,0,0,1,1,0,1,0,1,0]
 
-    obj_data = pd.read_csv('data/leuven_size.csv')
+    obj_data = pd.read_csv('data/inputs/leuven_size.csv')
     names, sizes, categories = obj_data.name.values, obj_data.size_for_animal_instrument_dataset.values, obj_data.category.values
     names, sizes, categories = names[experiment_stimulus_indices], sizes[experiment_stimulus_indices], categories[experiment_stimulus_indices]
     item_in = torch.zeros((1140,350),dtype=torch.float,device=set_torch_device())
@@ -389,7 +389,7 @@ def make_altered_experiment_training_data(distractor_strength=.975,target_streng
     ]
     random_contexts = [1,0,1,0,0,0,1,1,0,1,1,0,0,1,1,0,1,0,1,0]
 
-    obj_data = pd.read_csv('data/leuven_size.csv')
+    obj_data = pd.read_csv('data/inputs/leuven_size.csv')
     names, sizes, categories = obj_data.name.values, obj_data.size_for_animal_instrument_dataset.values, obj_data.category.values
     names, sizes, categories = names[experiment_stimulus_indices], sizes[experiment_stimulus_indices], categories[experiment_stimulus_indices]
     item_in = torch.zeros((380,350),dtype=torch.float,device=set_torch_device())
@@ -478,7 +478,7 @@ def format_fig(fig,height=600):
 
 
 def gen_distractor_patterns(distractor_strength,device=set_torch_device()):
-    object_names = pd.read_csv('data/leuven_size.csv').name.values
+    object_names = pd.read_csv('data/inputs/leuven_size.csv').name.values
     animal_names_experiment = ['elephant','giraffe','shark','alligator','rhinoceros',
                             'hamster','mouse','goldfish','frog','iguana']
     animal_idxs_experiment = [list(object_names).index(x) for x in animal_names_experiment]

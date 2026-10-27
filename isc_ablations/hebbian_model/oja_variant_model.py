@@ -2,14 +2,14 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import StandardScaler
 
-import data
+from isc_ablations.common import data
 import numpy as np
 import random
 import plotly.express as px
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import utils
+from isc_ablations.common import utils
 import sys
 from ..isc_model.model import BCEMetric
 

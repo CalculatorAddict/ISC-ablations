@@ -1,7 +1,7 @@
 import os
 import warnings
 
-import data
+from isc_ablations.common import data
 
 import numpy as np
 import pandas as pd
@@ -21,8 +21,8 @@ def run_oja_simulation(
     batch_size: int = 38,
     distractor_strength: float = 0.975,
     save_models: bool = False,
-    output_csv: str = 'data/oja_simulation_data_0200.csv',
-    model_path: str = 'models',
+    output_csv: str = 'data/05_error_gating/oja_error_gating_simulation_data_0200.csv',
+    model_path: str = 'models/05_error_gating',
 ):
     print(f'Running Oja simulation: {num_models} seeds, alpha={alpha:.4f}, {num_epochs} epochs')
     print('Loading ISC base models...')

@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from experimental_setups.hebbian_model.oja_variant_model import SimpleHebbianModel as OjaModel
+from isc_ablations.hebbian_model.oja_variant_model import SimpleHebbianModel as OjaModel
 
 # ── stimulus indices (fixed) ──────────────────────────────────────────
 big_animal_indices    = [118, 104,  30,  48, 116]
@@ -112,7 +112,7 @@ def measure_model_angle(model):
     return angle_between(reps_animal.mean(dim=0), reps_instrument.mean(dim=0))
 
 
-def measure_angles(model_dir=Path('models'), n_seeds=10, alpha_ema=ALPHA_EMA):
+def measure_angles(model_dir=Path('models/04_sluggishness'), n_seeds=10, alpha_ema=ALPHA_EMA):
     results = {'blocked': [], 'interleaved': []}
 
     for curriculum, tag in [('blocked', 'blockd'), ('interleaved', 'interl')]:

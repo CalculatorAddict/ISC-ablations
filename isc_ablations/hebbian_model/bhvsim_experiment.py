@@ -1,7 +1,7 @@
 import os
 import warnings
 
-import data
+from isc_ablations.common import data
 import numpy as np
 import pandas as pd
 import torch
@@ -12,7 +12,7 @@ from .experiment import prepare_experiment_data
 
 warnings.filterwarnings('ignore')
 
-model_path = 'models'
+model_path = 'models/04_sluggishness'
 num_models = 10
 alpha = np.linspace(0.05, 1, 30)[25]
 
@@ -81,5 +81,5 @@ for model_idx in range(num_models):
     }))
 
 error_data = pd.concat(error_data, axis=0)
-error_data.to_csv('data/oja_simulation_data_0200.csv', index=False)
-print('Saved to data/oja_simulation_data_0200.csv')
+error_data.to_csv('data/04_sluggishness/oja_simulation_data_0200.csv', index=False)
+print('Saved to data/04_sluggishness/oja_simulation_data_0200.csv')

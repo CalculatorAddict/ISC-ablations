@@ -1,10 +1,10 @@
-import data
+from isc_ablations.common import data
 import numpy as np
 import plotly.express as px
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import utils
+from isc_ablations.common import utils
 
 
 class BCEMetric:

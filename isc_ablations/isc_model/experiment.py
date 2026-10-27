@@ -1,7 +1,7 @@
 import os
 import warnings
 
-import data
+from isc_ablations.common import data
 import pandas as pd
 import torch
 from scipy.stats import ttest_rel
@@ -10,7 +10,7 @@ from . import model
 
 warnings.filterwarnings('ignore')
 
-model_path = 'models'
+model_path = 'models/pretrained'
 num_models = 10
 num_bootstrap_sims = 10000
 num_training_epochs = 30
@@ -38,8 +38,8 @@ error_data = []
 for model_idx in range(1):
     simulation_model = model.ISCModel(device='mps',num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
     save_file = f'isc_model-{model_idx}-bhvsim.torch'
-    if save_file in os.listdir('models'):
-        simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
+    if save_file in os.listdir('models/01_ablations'):
+        simulation_model.load_state_dict(torch.load(os.path.join('models/01_ablations',save_file)))
     else:
         simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True)
         errors = calc_model_error(simulation_model,train_x,train_y)
@@ -49,7 +49,7 @@ for model_idx in range(1):
             errors = calc_model_error(simulation_model,train_x,train_y)
             c+=1
         print(model_idx, errors.mean(),c)
-        torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+        torch.save(simulation_model.state_dict(),os.path.join('models/01_ablations',save_file))
 
 for i in range(71):
     errors = calc_model_error(simulation_model,train_x,train_y,noise=1.2)
@@ -58,4 +58,4 @@ for i in range(71):
     error_data.append(pd.DataFrame({'model':[i]*len(errors),'rt':errors,'error':1-accs,
                                     'size_condition':size_conditions,'cat_condition':cat_conditions,'rand_condition':random_cat_conditions,'block_type':blocks}))
 error_data = pd.concat(error_data,axis=0)
-error_data.to_csv(f'data/isc_simulation_data_0200.csv')
+error_data.to_csv(f'data/01_ablations/isc_simulation_data_0200.csv')

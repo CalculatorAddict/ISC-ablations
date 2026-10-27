@@ -6,14 +6,15 @@ import pandas as pd
 import torch
 from scipy.stats import ttest_rel
 
-import data
-import utils
+from isc_ablations.common import data
+from isc_ablations.common import utils
 from .. import isc_model
 from .oja_variant_model import ErrorGatingModel
 
 warnings.filterwarnings('ignore')
 
-model_path = 'models'
+model_path = 'models/05_error_gating/alpha_grid_search'  # error-gated Oja checkpoints (dir not tracked; was models/alpha_grid_search)
+baseline_model_path = 'models/01_ablations'  # ISC baselines; cache shared with hebbian_model.run_hebbian_baseline
 num_bootstrap_sims = 10000
 num_training_epochs = 30
 num_training_epochs_comparison = 10
@@ -75,16 +76,16 @@ def run_error_experiment(
         simulation_model = ErrorGatingModel(device=device,num_tasks=5,num_context_dependent_hidden_units=128)
         interl_save_file = f'oja_a{alpha:.2f}_interl-{model_idx}.torch'
 
-        if interl_save_file in os.listdir('models/alpha_grid_search'):
+        if interl_save_file in os.listdir(model_path):
             simulation_model.load_state_dict(
-                torch.load(os.path.join('models','alpha_grid_search',interl_save_file), map_location=device),
+                torch.load(os.path.join(model_path,interl_save_file), map_location=device),
                 strict=False,
             )
         else:
             simulation_model.load_old_model_weights(isc_models[model_idx].state_dict())
             simulation_model.train(train_x, train_y, epochs = num_epochs, batch_size = batch_size, is_blocked=False)
             if save_models:
-                torch.save(simulation_model.state_dict(),os.path.join('models','alpha_grid_search',interl_save_file))
+                torch.save(simulation_model.state_dict(),os.path.join(model_path,interl_save_file))
 
         simulation_models_interleaved += [simulation_model]
         if track_learning_curves:
@@ -115,16 +116,16 @@ def run_error_experiment(
         simulation_model = ErrorGatingModel(device=device,num_tasks=5,num_context_dependent_hidden_units=128)
         blockd_save_file = f'oja_a{alpha:.2f}_blockd-{model_idx}.torch'
 
-        if blockd_save_file in os.listdir('models/alpha_grid_search'):
+        if blockd_save_file in os.listdir(model_path):
             simulation_model.load_state_dict(
-                torch.load(os.path.join('models','alpha_grid_search',blockd_save_file), map_location=device),
+                torch.load(os.path.join(model_path,blockd_save_file), map_location=device),
                 strict=False,
             )
         else:
             simulation_model.load_old_model_weights(isc_models[model_idx].state_dict())
             simulation_model.train(train_x, train_y, epochs = num_epochs, batch_size = batch_size, is_blocked=True)
             if save_models:
-                torch.save(simulation_model.state_dict(),os.path.join('models','alpha_grid_search',blockd_save_file))
+                torch.save(simulation_model.state_dict(),os.path.join(model_path,blockd_save_file))
 
         simulation_models_blocked += [simulation_model]
         if track_learning_curves:
@@ -169,12 +170,12 @@ def run_error_baseline(num_epochs: int = 40, num_models: int = 10, device = None
     for model_idx in range(num_models):
         simulation_model = isc_model.model.ISCModel(device=device,num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
         save_file = f'isc_interl-{model_idx}.torch'
-        if save_file in os.listdir('models'):
-            simulation_model.load_state_dict(torch.load(os.path.join('models',save_file), map_location=device))
+        if save_file in os.listdir(baseline_model_path):
+            simulation_model.load_state_dict(torch.load(os.path.join(baseline_model_path,save_file), map_location=device))
         else:
             simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True)
             simulation_model.train(train_x,train_y,epochs=num_epochs, batch_size=1)
-            # torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+            # torch.save(simulation_model.state_dict(),os.path.join(baseline_model_path,save_file))
         baseline_models_interleaved += [simulation_model]
         
     for i in range(num_models):
@@ -187,8 +188,8 @@ def run_error_baseline(num_epochs: int = 40, num_models: int = 10, device = None
     for model_idx in range(num_models):
         simulation_model = isc_model.model.ISCModel(device=device,num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
         save_file = f'isc_blockd-{model_idx}.torch'
-        if save_file in os.listdir('models'):
-            simulation_model.load_state_dict(torch.load(os.path.join('models',save_file), map_location=device))
+        if save_file in os.listdir(baseline_model_path):
+            simulation_model.load_state_dict(torch.load(os.path.join(baseline_model_path,save_file), map_location=device))
         else:
             simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True)
             if random.random() < 0.5:
@@ -197,7 +198,7 @@ def run_error_baseline(num_epochs: int = 40, num_models: int = 10, device = None
             else:
                 simulation_model.train(train_x_instrument,train_y_instrument,epochs=num_epochs, batch_size=1)
                 simulation_model.train(train_x_animal,train_y_animal,epochs=num_epochs, batch_size=1)
-            # torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+            # torch.save(simulation_model.state_dict(),os.path.join(baseline_model_path,save_file))
         baseline_models_blocked += [simulation_model]
 
     for i in range(num_models):
@@ -213,4 +214,4 @@ if __name__=='__main__':
     error_data.append(run_error_baseline())
 
     error_data = pd.concat(error_data,axis=0)
-    error_data.to_csv(f'data/error_simulation_n{num_epochs}.csv')
+    error_data.to_csv(f'data/05_error_gating/error_simulation_n{num_epochs}.csv')

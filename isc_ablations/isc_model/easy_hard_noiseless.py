@@ -5,7 +5,7 @@ Easy-to-hard generalization replication study with 10 separate models trained fo
 import os, sys
 import warnings
 
-import data
+from isc_ablations.common import data
 import pandas as pd
 import torch
 from scipy.stats import ttest_rel
@@ -14,7 +14,9 @@ from . import model
 
 warnings.filterwarnings('ignore')
 
-model_path = 'models'
+model_path = 'models/pretrained'
+easyhard_model_path = 'models/02_easy_hard'  # not tracked in git; created on first run
+os.makedirs(easyhard_model_path, exist_ok=True)
 num_models = 10
 num_bootstrap_sims = 10000
 num_training_epochs = 30
@@ -53,12 +55,12 @@ nonseq_models = []
 for model_idx in range(num_models):
     simulation_model = model.ISCModel(device='mps',num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
     save_file = f'isc_model-{model_idx}-easyhard-nonseq.torch'
-    if save_file in os.listdir('models'):
-        simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
+    if save_file in os.listdir(easyhard_model_path):
+        simulation_model.load_state_dict(torch.load(os.path.join(easyhard_model_path,save_file)))
     else:
         simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True)
         simulation_model.train(train_x_hard, train_y_hard, epochs = 2)
-        torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+        torch.save(simulation_model.state_dict(),os.path.join(easyhard_model_path,save_file))
     nonseq_models += [simulation_model]
 
 for i in range(num_models):
@@ -71,8 +73,8 @@ interl_models = []
 for model_idx in range(num_models):
     simulation_model = model.ISCModel(device='mps',num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
     save_file = f'isc_model-{model_idx}-easyhard-interl.torch'
-    if save_file in os.listdir('models'):
-        simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
+    if save_file in os.listdir(easyhard_model_path):
+        simulation_model.load_state_dict(torch.load(os.path.join(easyhard_model_path,save_file)))
     else:
         simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True)
 
@@ -80,7 +82,7 @@ for model_idx in range(num_models):
         train_y = torch.cat((train_y_easy, train_y_hard))
 
         simulation_model.train(train_x, train_y, epochs = 1)
-        torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+        torch.save(simulation_model.state_dict(),os.path.join(easyhard_model_path,save_file))
     interl_models += [simulation_model]
 
 for i in range(num_models):
@@ -93,13 +95,13 @@ blockd_models = []
 for model_idx in range(num_models):
     simulation_model = model.ISCModel(device='mps',num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
     save_file = f'isc_model-{model_idx}-easyhard-blockd.torch'
-    if save_file in os.listdir('models'):
-        simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
+    if save_file in os.listdir(easyhard_model_path):
+        simulation_model.load_state_dict(torch.load(os.path.join(easyhard_model_path,save_file)))
     else:
         simulation_model.load_old_model_weights(isc_models[model_idx].state_dict(),use_old_size_starting_point = True)
         simulation_model.train(train_x_easy, train_y_easy, epochs = 1)
         simulation_model.train(train_x_hard, train_y_hard, epochs = 1)
-        torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+        torch.save(simulation_model.state_dict(),os.path.join(easyhard_model_path,save_file))
     blockd_models += [simulation_model]
 
 for i in range(num_models):
@@ -107,4 +109,4 @@ for i in range(num_models):
     accs = ((preds[:,2541]>preds[:,2542])==train_y_hard[:,2541]).float().cpu().detach().numpy()
     error_data.append(pd.DataFrame({'model':[i]*len(accs),'acc':accs,'curriculum':['seq-blocked']*len(accs)}))
 error_data = pd.concat(error_data,axis=0)
-error_data.to_csv(f'data/easyhard_noiseless_n{num_models}.csv')
+error_data.to_csv(f'data/02_easy_hard/easyhard_noiseless_n{num_models}.csv')

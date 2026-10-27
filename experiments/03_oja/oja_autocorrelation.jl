@@ -15,7 +15,7 @@
   maps out the (η, ρ) plane and compares stochastic trajectories
   against the deterministic mean-field ODE and its logistic reduction.
 
-  Usage:  julia oja_experiment.jl
+  Usage (from the repo root):  julia experiments/03_oja/oja_autocorrelation.jl
   Deps:   using Pkg; Pkg.add(["Plots", "LaTeXStrings", "Printf"])
 =#
 
@@ -326,25 +326,25 @@ function main()
     @printf("  Simulation time: %.1fs\n\n", time() - t0)
 
     # ── Generate and save figures ─────────────────────────────
-    mkpath("figures")
+    mkpath("figures/03_oja/autocorrelation")
     println("  Saving figures...")
 
     savefig(fig_phase_diagram(res, ηs, ρs),
-            "figures/phase_diagram.pdf")
+            "figures/03_oja/autocorrelation/phase_diagram.pdf")
     savefig(fig_fluctuation_map(res, ηs, ρs),
-            "figures/fluctuation_map.pdf")
+            "figures/03_oja/autocorrelation/fluctuation_map.pdf")
     savefig(fig_stability_map(res, ηs, ρs, nruns),
-            "figures/stability_map.pdf")
+            "figures/03_oja/autocorrelation/stability_map.pdf")
 
     savefig(fig_convergence_vs_eta(res, ηs, 0.0, T),
-            "figures/conv_eta_rho00.pdf")
+            "figures/03_oja/autocorrelation/conv_eta_rho00.pdf")
     savefig(fig_convergence_vs_eta(res, ηs, 0.9, T),
-            "figures/conv_eta_rho09.pdf")
+            "figures/03_oja/autocorrelation/conv_eta_rho09.pdf")
 
     savefig(fig_convergence_vs_rho(res, 0.003, ρs, T),
-            "figures/conv_rho_eta003.pdf")
+            "figures/03_oja/autocorrelation/conv_rho_eta003.pdf")
     savefig(fig_convergence_vs_rho(res, 0.03,  ρs, T),
-            "figures/conv_rho_eta030.pdf")
+            "figures/03_oja/autocorrelation/conv_rho_eta030.pdf")
 
     slow_pairs = [(0.003, 0.0), (0.003, 0.9)]
     fast_pairs = [(0.03,  0.0), (0.03,  0.9)]
@@ -353,15 +353,15 @@ function main()
     fast_lims = shared_ylims(res, fast_pairs)
 
     savefig(fig_norm_dynamics(res, 0.003, 0.0, T, nruns; ylims = slow_lims),
-            "figures/norm_slow_iid.pdf")
+            "figures/03_oja/autocorrelation/norm_slow_iid.pdf")
     savefig(fig_norm_dynamics(res, 0.003, 0.9, T, nruns; ylims = slow_lims),
-            "figures/norm_slow_corr.pdf")
+            "figures/03_oja/autocorrelation/norm_slow_corr.pdf")
     savefig(fig_norm_dynamics(res, 0.03,  0.0, T, nruns; ylims = fast_lims),
-            "figures/norm_fast_iid.pdf")
+            "figures/03_oja/autocorrelation/norm_fast_iid.pdf")
     savefig(fig_norm_dynamics(res, 0.03,  0.9, T, nruns; ylims = fast_lims),
-            "figures/norm_fast_corr.pdf")
+            "figures/03_oja/autocorrelation/norm_fast_corr.pdf")
 
-    println("  All figures saved to figures/\n")
+    println("  All figures saved to figures/03_oja/autocorrelation/\n")
 
     # ── Summary table ─────────────────────────────────────────
     println("  ── Summary ──────────────────────────────────────")

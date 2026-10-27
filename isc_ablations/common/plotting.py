@@ -1,4 +1,6 @@
-import data
+import os
+
+from isc_ablations.common import data
 import numpy as np
 import pandas as pd
 import sys
@@ -9,7 +11,7 @@ import plotly.express as px
 
 pd.options.mode.copy_on_write = True # prevent SettingWithCopy warnings
 
-experiment_number = 0
+experiment_number = 0  # counter for auto-numbered scratch plots (save_path=None)
 
 def _rotate_row_titles(fig, row_labels):
     """Rotate row titles vertically on the left edge regardless of subplot count."""
@@ -32,13 +34,15 @@ def _place_category_legend(fig):
         )
     )
 
-def make_model_plot(models, include_human=False):
+def make_model_plot(models, include_human=False, save_path=None):
     """
     Generates plot for a list of models on the ISC distractor experiment.
     
     Parameters:
     - models (list[tuple]): a list of (name, path) for each model
-    - include_humans (bool): if True, displays results for humans
+    - include_human (bool): if True, displays results for humans
+    - save_path (str | None): where to write the PNG. If None, writes an auto-numbered
+      figures/scratch/ablation{n}.png (gitignored) so reruns never overwrite a kept figure
     """
 
     num_models = len(models) # counts number of models used
@@ -104,8 +108,11 @@ def make_model_plot(models, include_human=False):
 
     # save plot as png
     global experiment_number
-    experiment_number += 1
-    fig.write_image(f"images/ablation{experiment_number}.png")
+    if save_path is None:
+        experiment_number += 1
+        save_path = f"figures/scratch/ablation{experiment_number}.png"
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    fig.write_image(save_path)
 
     fig.show()
 
@@ -209,11 +216,11 @@ def generate_human_plot_data():
 if __name__=='__main__':
 
     models = [
-            ('ISC Model', 'data/isc_simulation_data_0200.csv'),
+            ('ISC Model', 'data/01_ablations/isc_simulation_data_0200.csv'),
             # ('MLP Model', 'data/mlp_simulation_data_0200.csv'),
             # ('MLP (Batch size 1)', 'data/batch1_simulation_data_0200.csv'),
             # ('MLP (No context)', 'data/ablated_simulation_data_0200.csv'),
-            ('ISC (Temporal)', 'data/isc_temporal_data_0200.csv')
+            ('ISC (Temporal)', 'data/01_ablations/isc_temporal_data_0200.csv')
         ]
 
     make_model_plot(

@@ -1,7 +1,7 @@
 import os
 import warnings
 
-import data
+from isc_ablations.common import data
 import pandas as pd
 import torch
 from scipy.stats import ttest_rel
@@ -10,7 +10,7 @@ from . import model
 
 warnings.filterwarnings('ignore')
 
-model_path = 'models'
+model_path = 'models/pretrained'
 num_models = 10
 num_bootstrap_sims = 10000
 num_training_epochs = 30
@@ -46,8 +46,8 @@ def load_blocked():
 
     simulation_model = model.ISCModel(device='mps',num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
     save_file = f'isc_model-blocked.torch'
-    if save_file in os.listdir('models'):
-        simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
+    if save_file in os.listdir('models/01_ablations'):
+        simulation_model.load_state_dict(torch.load(os.path.join('models/01_ablations',save_file)))
     else:
         simulation_model.load_old_model_weights(isc_models[0].state_dict(),use_old_size_starting_point = True)
         errors = calc_model_error(simulation_model,train_x,train_y)
@@ -58,7 +58,7 @@ def load_blocked():
             errors = calc_model_error(simulation_model,train_x,train_y)
             c+=1
         print(0, errors.mean(),c)
-        torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+        torch.save(simulation_model.state_dict(),os.path.join('models/01_ablations',save_file))
     
     return simulation_model
 
@@ -69,8 +69,8 @@ def load_interleaved():
 
     simulation_model = model.ISCModel(device='mps',num_tasks=5,num_task_context_units=16,num_context_dependent_hidden_units=128)
     save_file = f'isc_model-interleaved.torch'
-    if save_file in os.listdir('models'):
-        simulation_model.load_state_dict(torch.load(os.path.join('models',save_file)))
+    if save_file in os.listdir('models/01_ablations'):
+        simulation_model.load_state_dict(torch.load(os.path.join('models/01_ablations',save_file)))
     else:
         simulation_model.load_old_model_weights(isc_models[0].state_dict(),use_old_size_starting_point = True)
         errors = calc_model_error(simulation_model,train_x,train_y)
@@ -80,7 +80,7 @@ def load_interleaved():
             errors = calc_model_error(simulation_model,train_x,train_y)
             c+=1
         print(0, errors.mean(),c)
-        torch.save(simulation_model.state_dict(),os.path.join('models',save_file))
+        torch.save(simulation_model.state_dict(),os.path.join('models/01_ablations',save_file))
     
     return simulation_model
 
@@ -106,4 +106,4 @@ if __name__=='__main__':
                                         'size_condition':size_conditions,'cat_condition':cat_conditions,
                                         'random_cat_condition':random_cat_conditions,'block_type':['interleaved']*len(errors)}))
     error_data = pd.concat(error_data,axis=0)
-    error_data.to_csv(f'data/isc_temporal_data_0200.csv')
+    error_data.to_csv(f'data/01_ablations/isc_temporal_data_0200.csv')
