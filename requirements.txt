@@ -1,0 +1,10 @@
+# Unpinned: generated from the code's imports on 2026-10-27. The research env (conda base, Python 3.13)
+# was never inspected, so pin versions with `pip freeze` from that env.
+numpy
+pandas
+scipy
+scikit-learn
+torch
+matplotlib
+plotly
+kaleido  # needed by plotly's fig.write_image (isc_ablations/common/plotting.py)
