@@ -44,7 +44,7 @@ Each notebook opens with a header (question, inputs, outputs) and has a dated lo
 | 4.2 | [`figures/03_oja/autocorrelation/norm_slow_iid.pdf`](figures/03_oja/autocorrelation/norm_slow_iid.pdf), [`norm_slow_corr.pdf`](figures/03_oja/autocorrelation/norm_slow_corr.pdf) | `oja_autocorrelation.jl` |
 | 4.3 | [`figures/03_oja/autocorrelation/stability_map.pdf`](figures/03_oja/autocorrelation/stability_map.pdf) | `oja_autocorrelation.jl` |
 | 4.4 | [`figures/03_oja/eigenvalues/stability_eigenvals.pdf`](figures/03_oja/eigenvalues/stability_eigenvals.pdf) | `oja_eigenvalues.jl` |
-| 4.6 | [`figures/03_oja/oja_isc_baseline.png`](figures/03_oja/oja_isc_baseline.png) (left), [`oja_learning_curves.png`](figures/03_oja/oja_learning_curves.png) (right) | `oja_verification` §3. The dissertation's left panel is the render from commit `0ce4408`; the current file is a later re-render |
+| 4.6 | [`figures/03_oja/oja_isc_baseline.png`](figures/03_oja/oja_isc_baseline.png) (left), [`oja_learning_curves.png`](figures/03_oja/oja_learning_curves.png) (right) | `oja_verification` §3. The dissertation's left panel is the 2026-05-01 render (removed from history in the 2026-10 purge); the current file is a later re-render |
 | 5.1 | [`figures/04_sluggishness/alpha_grid_search_n20.png`](figures/04_sluggishness/alpha_grid_search_n20.png) | `hebbian_sluggishness` §5.2 (20 models; the dissertation caption says 10 runs) |
 | 5.2 | [`figures/04_sluggishness/hebbian_vs_human_cue_blocking.png`](figures/04_sluggishness/hebbian_vs_human_cue_blocking.png) | `hebbian_sluggishness` §6 |
 | 5.3 | [`figures/03_oja/oja_vs_isc_learning_curve.png`](figures/03_oja/oja_vs_isc_learning_curve.png) | `oja_verification` §3 |
